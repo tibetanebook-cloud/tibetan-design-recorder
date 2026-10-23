@@ -1,0 +1,62 @@
+{
+  "id": "tibetan-basics",
+  "name": "Tibetan Basics",
+  "version": "1.0.0",
+  "author": "Tibetan Design",
+  "description": "Sample extension: a mandala wallpaper, laptop and browser frames, and a soft click sound.",
+  "contributes": {
+    "wallpapers": [
+      {
+        "id": "mandala",
+        "name": "Mandala",
+        "file": "wallpapers/mandala.png",
+        "names": {
+          "bo": "དཀྱིལ་འཁོར།"
+        }
+      }
+    ],
+    "deviceFrames": [
+      {
+        "id": "laptop",
+        "name": "Laptop",
+        "file": "frames/laptop.png",
+        "screen": {
+          "x": 160,
+          "y": 100,
+          "width": 1880,
+          "height": 1140
+        },
+        "names": {
+          "bo": "ལག་ཁྱེར་རྩིས་འཁོར།"
+        }
+      },
+      {
+        "id": "browser",
+        "name": "Browser Window",
+        "file": "frames/browser.png",
+        "screen": {
+          "x": 0,
+          "y": 92,
+          "width": 2000,
+          "height": 1128
+        },
+        "names": {
+          "bo": "བཤར་ཆས་ཀྱི་སྒེའུ་ཁུང་།"
+        }
+      }
+    ],
+    "clickSounds": [
+      {
+        "id": "soft-click",
+        "name": "Soft Click",
+        "file": "sounds/click.wav",
+        "names": {
+          "bo": "གཅིག་རྡེབ་འཇམ་པོ།"
+        }
+      }
+    ]
+  },
+  "names": {
+    "bo": "བོད་ཀྱི་གཞི་རྩ།"
+  }
+}

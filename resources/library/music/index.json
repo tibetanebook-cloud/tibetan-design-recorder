@@ -1,0 +1,17 @@
+[
+  {
+    "file": "calm-pad.wav",
+    "name": "music.calmPad",
+    "seconds": 26.67
+  },
+  {
+    "file": "mountain-pluck.wav",
+    "name": "music.mountainPluck",
+    "seconds": 20.0
+  },
+  {
+    "file": "soft-pulse.wav",
+    "name": "music.softPulse",
+    "seconds": 19.2
+  }
+]

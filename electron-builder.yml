@@ -1,0 +1,107 @@
+# Installers for Windows, macOS and Linux.
+# Owner decisions (2026-10-22): app id org.tibetandesign.recorder, publisher "Tibetan Design",
+# unsigned for now (see docs/INSTALL.md for what users see), macOS/Linux built by GitHub Actions.
+appId: org.tibetandesign.recorder
+productName: Tibetan Design Recorder
+copyright: Copyright © 2026 Tibetan Design
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - "!out/**/*.map"
+  - package.json
+# Bundled content (sample extension, library music, licence texts) lives next to the app.
+extraResources:
+  - from: resources
+    to: resources
+    filter: ["**/*"]
+asar: true
+# Native .node files of uiohook-napi must stay outside the asar archive.
+asarUnpack:
+  - "**/*.node"
+npmRebuild: false
+# Chromium's own UI translations (context menus etc.): none exists for Tibetan, keep English only (-48 MB).
+electronLanguages: [en-US]
+# Nothing is uploaded anywhere by a local build.
+publish: null
+fileAssociations:
+  - ext: tdrec
+    name: Tibetan Design Recorder Project
+    description: Tibetan Design Recorder project
+    role: Editor
+    icon: build/icon.ico
+
+win:
+  target:
+    # One installer per architecture (several arches in one nsis target would also
+    # produce a combined, double-size installer): ARM64 is built by `npm run dist:win-arm64`.
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: build/icon.ico
+  # Unsigned for now: no signing tool is run.
+  signAndEditExecutable: true
+  verifyUpdateCodeSignature: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Tibetan Design Recorder
+  # Projects and recordings are the user's: never delete them on uninstall.
+  deleteAppDataOnUninstall: false
+  # Removes the .tdrec file type on uninstall (build/installer.nsh).
+  include: build/installer.nsh
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  artifactName: tibetan-design-recorder-${version}-windows-${arch}-setup.${ext}
+portable:
+  artifactName: tibetan-design-recorder-${version}-windows-${arch}-portable.${ext}
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.video
+  icon: build/icon.png
+  minimumSystemVersion: "12.0"
+  # Unsigned for now. With a Developer ID: provide CSC_LINK/CSC_KEY_PASSWORD, set
+  # hardenedRuntime: true (entitlements below) and notarize (see docs/BUILD.md).
+  identity: null
+  hardenedRuntime: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSCameraUsageDescription: Records your webcam as its own track.
+    NSMicrophoneUsageDescription: Records your microphone as its own track.
+    NSScreenCaptureUsageDescription: Records your screen.
+  # Name of the .zip (the dmg sets its own below).
+  artifactName: tibetan-design-recorder-${version}-macos-${arch}.${ext}
+dmg:
+  artifactName: tibetan-design-recorder-${version}-macos-${arch}.${ext}
+  title: Tibetan Design Recorder
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+  icon: build/icons
+  category: AudioVideo
+  synopsis: Screen recorder and video editor for teaching (Tibetan / English)
+  description: Records screen, webcam, microphone and system audio as separate tracks, with a multi-track editor and a Tibetan and English interface.
+  maintainer: Tibetan Design
+  executableName: tibetan-design-recorder
+  mimeTypes: [application/x-tdrec]
+  artifactName: tibetan-design-recorder-${version}-linux-${arch}.${ext}
+deb:
+  depends: [libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0]
+  # PipeWire is used for screen capture on Wayland.
+  recommends: [pipewire]
