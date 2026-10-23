@@ -93,7 +93,7 @@ drawn by the one compositor, so preview, seeking and export always agree.
 | Speed regions | `timeline/regions.ts` | A time warp over In/Out applied to every unlocked lane at once (clips, markers and zooms move together), so inputs never drift apart. |
 | Annotations | `schema.ts` `shape` content, compositor | Text, image, arrow, line, rectangle, ellipse on annotation lanes; a new lane is added when the current one is busy. |
 
-## Stage 5: Camtasia-class tools
+## Stage 5: teaching and editing tools
 
 Same rule as Stage 4: what is on screen is decided in `src/shared` (pure, unit-tested),
 and drawn by the one compositor, so preview and export match.

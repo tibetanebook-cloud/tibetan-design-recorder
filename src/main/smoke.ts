@@ -287,7 +287,7 @@ function startMockStt(): Promise<{ url: string; close: () => void; requests: () 
   );
 }
 
-/** Stage 5: Camtasia-class tools on the recorded take. */
+/** Stage 5: teaching and editing tools on the recorded take. */
 async function smokeTools(win: BrowserWindow, outDir: string, check: Check, page: <T>(code: string) => Promise<T>, wait: (ms: number) => Promise<void>): Promise<void> {
   const stage5 = ["insert.callout", "insert.highlight", "insert.spotlight", "insert.blurRegion", "insert.stepNumber", "insert.keystrokes", "effects.greenScreen", "effects.transitions", "effects.titles", "effects.library", "audio.noiseRemoval", "audio.leveling", "audio.equalizer", "audio.compressor", "audio.captions", "export.subtitles", "export.queue"];
   const items = MENUS.flatMap((m) => m.items);
