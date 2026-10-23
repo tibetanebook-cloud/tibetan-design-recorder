@@ -30,7 +30,8 @@ fileAssociations:
     name: Tibetan Design Recorder Project
     description: Tibetan Design Recorder project
     role: Editor
-    icon: build/icon.ico
+    # No extension: Windows uses build/icon.ico, macOS build/icon.icns.
+    icon: build/icon
 
 win:
   target:

@@ -20,12 +20,12 @@
     "i18n:report": "python scripts/i18n/tibetan_terms.py report",
     "i18n:lint": "node --experimental-strip-types --no-warnings scripts/i18n/lint-json.ts",
     "icons": "python build/icon-source/make_icons.py",
-    "dist:win": "npm run licenses && npm run build && electron-builder --win",
-    "dist:mac": "npm run licenses && npm run build && electron-builder --mac",
-    "dist:linux": "npm run licenses && npm run build && electron-builder --linux",
+    "dist:win": "npm run licenses && npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run licenses && npm run build && electron-builder --mac --publish never",
+    "dist:linux": "npm run licenses && npm run build && electron-builder --linux --publish never",
     "licenses": "node scripts/collect-licenses.mjs",
-    "dist:dir": "npm run licenses && npm run build && electron-builder --win --dir",
-    "dist:win-arm64": "npm run licenses && npm run build && electron-builder --win nsis --arm64"
+    "dist:dir": "npm run licenses && npm run build && electron-builder --win --dir --publish never",
+    "dist:win-arm64": "npm run licenses && npm run build && electron-builder --win nsis --arm64 --publish never"
   },
   "dependencies": {
     "uiohook-napi": "1.5.5",
