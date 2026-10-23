@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/app-icon-256.png" width="160" height="160" alt="Tibetan Design Recorder app icon">
+</p>
+
 # Tibetan Design Recorder · བོད་ཀྱི་བརྙན་ལེན།
 
 A desktop screen recorder and multi-track video editor for teaching, for Windows,
