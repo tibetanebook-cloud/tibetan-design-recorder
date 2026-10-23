@@ -1,5 +1,7 @@
 # Installing Tibetan Design Recorder · བོད་ཀྱི་བརྙན་ལེན།
 
+Download: **https://github.com/tibetanebook-cloud/tibetan-design-recorder/releases/latest**
+
 | System | File | Notes |
 |---|---|---|
 | Windows 10/11 (most PCs) | `tibetan-design-recorder-<version>-windows-x64-setup.exe` | Installs for the current user; you can choose the folder. |
@@ -7,8 +9,8 @@
 | Windows, no install | `…-windows-x64-portable.exe` | Runs from a USB stick or any folder. |
 | macOS 12+ on Apple Silicon (M1–M4) | `…-macos-arm64.dmg` | |
 | macOS 12+ on Intel | `…-macos-x64.dmg` | |
-| Linux (Ubuntu, Debian, Mint…) | `…-linux-x64.deb` (or `arm64`) | `sudo apt install ./tibetan-design-recorder-…deb` |
-| Linux (any distribution) | `…-linux-x64.AppImage` (or `arm64`) | Make it executable, then double-click. |
+| Linux (Ubuntu, Debian, Mint…) | `…-linux-amd64.deb` (ARM: `…-linux-arm64.deb`) | `sudo apt install ./tibetan-design-recorder-…deb` |
+| Linux (any distribution) | `…-linux-x86_64.AppImage` (ARM: `…-linux-arm64.AppImage`) | Make it executable, then double-click. |
 
 ## The first start (these builds are not code-signed yet)
 

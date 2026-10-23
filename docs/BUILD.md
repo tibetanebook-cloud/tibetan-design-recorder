@@ -49,7 +49,7 @@ repeated, at most 3 attempts, and the retry is printed.
 | `npm run dist:win` | `…-windows-x64-setup.exe`, `…-windows-x64-portable.exe` | Windows |
 | `npm run dist:win-arm64` | `…-windows-arm64-setup.exe` | Windows |
 | `npm run dist:mac` | `…-macos-arm64.dmg/.zip`, `…-macos-x64.dmg/.zip` | macOS only |
-| `npm run dist:linux` | `…-linux-x64.AppImage/.deb`, `…-linux-arm64.AppImage/.deb` | Linux (or the GitHub workflow) |
+| `npm run dist:linux` | `…-linux-x86_64.AppImage`, `…-linux-amd64.deb`, `…-linux-arm64.AppImage/.deb` | Linux (or the GitHub workflow) |
 | `npm run dist:dir` | `dist/win-unpacked/` (no installer, quickest check) | Windows |
 
 Each first runs `npm run licenses`, which copies the licence text of every third-party
@@ -75,7 +75,7 @@ Tibetan screen audit first.
 - Or run it by hand (Actions → *Build installers* → *Run workflow*) → the files are kept as
   downloadable artifacts for 14 days.
 
-To use it the project must be in a GitHub repository (not set up yet).
+Repository: https://github.com/tibetanebook-cloud/tibetan-design-recorder (public). v0.1.0 was built and released this way on 2026-10-22.
 
 ### Version number
 

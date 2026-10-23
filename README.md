@@ -10,6 +10,8 @@ macOS and Linux, with a full Tibetan and English interface.
   and Camtasia-style tools (callouts, blur, transitions, captions, quizzes)
 - Export the finished video (MP4, WebM, GIF, MP3/WAV) or each track on its own
 
+**Download:** [latest release](https://github.com/tibetanebook-cloud/tibetan-design-recorder/releases/latest) for Windows, macOS and Linux — see [installing](docs/INSTALL.md).
+
 ## Status
 
 | Stage | | |
