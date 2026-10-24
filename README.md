@@ -4,8 +4,8 @@
 
 # Nangchen T. Studio Screen Recorder · ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།
 
-A desktop screen recorder and multi-track video editor for teaching, for Windows,
-macOS and Linux, with a full Tibetan and English interface.
+A desktop screen recorder and multi-track video editor for teaching, for Windows
+and Mac, with a full Tibetan and English interface.
 
 - Records screen, webcam, microphone and system audio at the same time, each as its
   own file and its own timeline lane, plus cursor/click/keystroke data
@@ -16,7 +16,7 @@ macOS and Linux, with a full Tibetan and English interface.
 - Double-click any text or title on the preview to edit it; any font on your computer
 - Export the finished video (MP4, WebM, GIF, MP3/WAV) or each track on its own
 
-**Download:** [latest release](https://github.com/tibetanebook-cloud/tibetan-design-recorder/releases/latest) for Windows, macOS and Linux — see [installing](docs/INSTALL.md).
+**Download:** [latest release](https://github.com/tibetanebook-cloud/tibetan-design-recorder/releases/latest) for Windows and Mac — see [installing](docs/INSTALL.md).
 
 ## Screenshots
 
@@ -40,7 +40,7 @@ Shown with the Tibetan interface (switch to English at the top right).
 | 5 | Teaching and editing tools: callouts, highlight/spotlight, blur/pixelate redaction, transitions, title templates, one-click layouts, audio tools (noise removal, leveling, EQ, compressor), auto-captions + SRT/VTT, green screen, quizzes/chapters/steps/keystrokes, library, background job queue | ✅ (offline speech-to-text and no-green-screen background removal need a model download — see Architecture) |
 | 6 | Export: MP4 (H.264/HEVC/AV1 + AAC), WebM (VP9/AV1 + Opus), GIF, MP3/WAV/M4A, every lane as its own file, In/Out range, captions burned in or as .srt, background queue with progress/cancel, batch export of project files; GPU encoding through the encoders built into Electron (no FFmpeg) | ✅ |
 | 7 | Tibetan localization review: every screen audited in Tibetan (no English left, Noto Serif Tibetan, line height ≥ 1.8, no clipped stacks), translated native dialogs and recording messages, spelling/punctuation lint, one-term-one-translation check, review spreadsheet + import tool | ✅ (146 new terms await a native speaker's review) |
-| 8 | Installers: Windows setup (x64, ARM64) + portable, macOS dmg/zip (Apple Silicon, Intel), Linux AppImage/deb (x64, ARM64); GitHub workflow builds all of them and drafts a release; licence texts shipped; double-clicking a `.tdrec` opens it | ✅ (unsigned; Windows tested here, macOS/Linux build in the workflow) |
+| 8 | Installers: Windows setup, macOS dmg (Apple Silicon, Intel); GitHub workflow builds them and drafts a release; licence texts shipped; double-clicking a `.tdrec` opens it | ✅ (unsigned; Windows tested here, macOS built in the workflow) |
 
 ## Language
 

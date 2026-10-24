@@ -16,7 +16,12 @@ const USER_DATA = ["settings.json", "library.json", "transcribe.json", "extensio
 export function migrateUserData(appDataDir: string, newUserDataDir: string): string[] {
   const oldDir = join(appDataDir, OLD_PRODUCT_NAME);
   if (oldDir === newUserDataDir || !existsSync(oldDir) || existsSync(join(newUserDataDir, "settings.json"))) return [];
-  mkdirSync(newUserDataDir, { recursive: true });
+  // Chromium creates the same folder while starting up; tolerate that race.
+  try {
+    mkdirSync(newUserDataDir, { recursive: true });
+  } catch (e) {
+    if (!existsSync(newUserDataDir)) throw e;
+  }
   const copied: string[] = [];
   for (const name of USER_DATA) {
     const from = join(oldDir, name);

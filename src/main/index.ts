@@ -25,8 +25,13 @@ if (SMOKE) app.setPath("userData", join(app.getPath("temp"), `tdrec-smoke-${proc
 const PRODUCT_FOLDER = "Nangchen T. Studio Screen Recorder";
 // Renamed in v0.2.0: bring the user's settings, library and extensions along.
 if (!SMOKE) {
-  const moved = migrateUserData(app.getPath("appData"), app.getPath("userData"));
-  if (moved.length) console.log("Moved user data from the old app name:", moved.join(", "));
+  // Never let this stop the app from starting: at worst the user starts with default settings.
+  try {
+    const moved = migrateUserData(app.getPath("appData"), app.getPath("userData"));
+    if (moved.length) console.log("Moved user data from the old app name:", moved.join(", "));
+  } catch (e) {
+    console.warn("Could not move user data from the old app name:", e);
+  }
 }
 
 /** Project to open once the window is ready. */

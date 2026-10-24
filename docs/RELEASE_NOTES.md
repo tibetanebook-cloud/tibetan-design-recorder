@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.2.1 — fixes (2026-10-23)
+
+- Fixed: on some PCs the app stopped at its first start with "A JavaScript error occurred in the
+  main process" (while copying settings from 0.1). Starting the app can no longer fail there.
+- Fixed: the welcome screen's Tibetan name ran into the English name.
+- Fixed: in the lower-third and chapter title templates, a Tibetan subtitle overlapped the title.
+- Downloads are now just Windows and Mac, with short names:
+  `Nangchen-Recorder-0.2.1-Windows-Setup.exe`, `…-Mac-AppleSilicon.dmg`, `…-Mac-Intel.dmg`.
+- The double-click text editor is wider, so short titles don't wrap while typing.
+
 ## 0.2.0 — new name, webcam styles and filters, fonts, in-place text editing
 
 The app is now called **Nangchen T. Studio Screen Recorder · ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།**. Settings, the library and autosaves from 0.1

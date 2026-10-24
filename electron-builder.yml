@@ -49,8 +49,6 @@ win:
     # produce a combined, double-size installer): ARM64 is built by `npm run dist:win-arm64`.
     - target: nsis
       arch: [x64]
-    - target: portable
-      arch: [x64]
   icon: build/icon.ico
   # Unsigned for now: no signing tool is run.
   signAndEditExecutable: true
@@ -69,15 +67,13 @@ nsis:
   include: build/installer.nsh
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
-  artifactName: nangchen-t-studio-screen-recorder-${version}-windows-${arch}-setup.${ext}
+  artifactName: Nangchen-Recorder-${version}-Windows-Setup.${ext}
 portable:
-  artifactName: nangchen-t-studio-screen-recorder-${version}-windows-${arch}-portable.${ext}
+  artifactName: Nangchen-Recorder-${version}-Windows-Portable.${ext}
 
 mac:
   target:
     - target: dmg
-      arch: [arm64, x64]
-    - target: zip
       arch: [arm64, x64]
   category: public.app-category.video
   icon: build/icon.png
@@ -93,9 +89,9 @@ mac:
     NSMicrophoneUsageDescription: Records your microphone as its own track.
     NSScreenCaptureUsageDescription: Records your screen.
   # Name of the .zip (the dmg sets its own below).
-  artifactName: nangchen-t-studio-screen-recorder-${version}-macos-${arch}.${ext}
+  artifactName: Nangchen-Recorder-${version}-Mac-${arch}.${ext}
 dmg:
-  artifactName: nangchen-t-studio-screen-recorder-${version}-macos-${arch}.${ext}
+  artifactName: Nangchen-Recorder-${version}-Mac-${arch}.${ext}
   title: Nangchen T. Studio Screen Recorder
 
 linux:
@@ -111,7 +107,7 @@ linux:
   maintainer: Tibetan Design
   executableName: nangchen-t-studio-screen-recorder
   mimeTypes: [application/x-tdrec]
-  artifactName: nangchen-t-studio-screen-recorder-${version}-linux-${arch}.${ext}
+  artifactName: Nangchen-Recorder-${version}-Linux-${arch}.${ext}
 deb:
   depends: [libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0]
   # PipeWire is used for screen capture on Wayland.
