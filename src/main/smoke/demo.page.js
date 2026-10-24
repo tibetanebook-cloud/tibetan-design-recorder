@@ -37,6 +37,9 @@
     #demo-card .bo { font-family: "Noto Serif Tibetan"; font-weight: 700; font-size: 64px; line-height: 1.9; color: #e8c56a; }
     #demo-card .en { font-size: 54px; font-weight: 700; margin-top: -8px; }
     #demo-card .tag { font-size: 30px; color: #c9bfa8; margin-top: 14px; }
+    #demo-card .share { font-size: 34px; font-style: italic; color: #f3ead8; margin-top: 18px; }
+    #demo-card .studio { font-size: 34px; letter-spacing: 3px; text-transform: uppercase; color: #e8c56a; margin-bottom: 26px; font-weight: 600; }
+    #demo-card img.big { width: 460px; height: 460px; border-radius: 0; box-shadow: none; filter: drop-shadow(0 24px 70px rgba(0,0,0,.7)) drop-shadow(0 0 60px rgba(232,197,106,.25)); margin-bottom: 26px; }
     #demo-card .url { font-size: 44px; color: #f1cf7a; margin-top: 24px; font-weight: 600; }
     #demo-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,10,14,.55);
       color: #fff; font-size: 260px; font-weight: 800; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
@@ -188,7 +191,7 @@
   // events [ms, fn] (run once), tick(ms) every frame. `L(i, +ms)` = when narration line i starts.
   const scenes = {
     intro: (L, dur) => ({
-      card: { from: 0, to: dur - 700, html: `<img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen T. Studio Screen Recorder</div><div class="tag">A quick tour · Tibetan & English</div>` },
+      card: { from: 0, to: dur - 700, html: `<div class="studio">Welcome to the Nangchen T. Studio</div><img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen Studio Screen Recorder</div><div class="tag">A quick tour · Tibetan & English</div>` },
       events: [[dur - 400, () => (cursorVisible = true)]],
       cursor: [[0, [1100, 600]]],
     }),
@@ -358,7 +361,7 @@
     }),
     outro: (L, dur) => ({
       events: [[0, () => st().setExportDialog(null)], [500, () => (cursorVisible = false)]],
-      card: { from: 400, to: dur + 1000, fadeIn: true, html: `<img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen T. Studio Screen Recorder</div><div class="tag">Available for Windows and Mac · Tibetan & English</div><div class="url">nangchen.com</div>` },
+      card: { from: 400, to: dur + 1000, fadeIn: true, html: `<img class="big" src="${ASSETS.icon}"><div class="en">Nangchen Studio Screen Recorder</div><div class="tag">Available for Windows and Mac · Tibetan & English</div><div class="share">Let's share our knowledge with others.</div><div class="url">nangchen.com</div>` },
     }),
   };
   const scissors = () => [...document.querySelectorAll(".tl-btn")].find((x) => x.textContent.includes("✂"));
