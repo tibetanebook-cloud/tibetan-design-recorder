@@ -149,6 +149,17 @@
   border: 2px solid var(--accent, #d4a94a); border-radius: 6px; outline: none;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 }
-.font-picker { display: flex; flex-direction: column; gap: 4px; }
-.font-picker select { width: 100%; }
-.font-picker .font-load { align-self: flex-start; font-size: 12px; }
+/* Font picker: searchable list of every font on this computer */
+.font-picker { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.font-current { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; background: var(--bg-panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 14px; text-align: left; cursor: pointer; }
+.font-current > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.6; }
+:lang(bo) .font-current > span:first-child, .font-current > span:first-child:lang(bo) { line-height: 2.4; }
+.font-popover { position: absolute; top: 100%; left: 0; right: 0; z-index: 30; margin-top: 4px; display: flex; flex-direction: column; background: #181a24; border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+.font-search { margin: 8px; padding: 6px 8px; background: var(--bg-panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.font-list { max-height: 340px; overflow-y: auto; padding: 0 4px 6px; }
+.font-group { position: sticky; top: 0; padding: 6px 8px 4px; background: #181a24; color: var(--gold); font-size: 12px; }
+.font-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; padding: 4px 8px; background: none; border: 0; border-radius: 5px; color: var(--text); text-align: left; cursor: pointer; }
+.font-row:hover { background: var(--bg-panel); }
+.font-row.selected { background: rgba(212, 169, 74, 0.18); color: var(--gold); }
+.font-name { font-size: 16px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.font-sample { flex: none; font-size: 16px; line-height: 2.2; opacity: 0.8; }

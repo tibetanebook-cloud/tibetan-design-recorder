@@ -147,6 +147,27 @@
       await frame(9000);
     },
 
+    /** 8. Fonts: every font on this computer, Tibetan fonts first (run as a user gesture). */
+    async fonts() {
+      st().setPanelTab("properties");
+      st().select([clipOf("title").id]);
+      await frame(4000);
+      await sleep(300);
+      const btn = document.querySelector("[data-font-picker]");
+      btn.scrollIntoView({ block: "start" });
+      btn.click();
+      // Wait until this computer's fonts are listed (not just the built-in ones).
+      for (let i = 0; i < 100 && document.querySelectorAll(".font-row[data-font]").length < 20; i++) await sleep(100);
+      await sleep(600);
+      return { rows: document.querySelectorAll(".font-row[data-font]").length, tibetan: document.querySelectorAll(".font-row .font-sample").length };
+    },
+
+    async closeFonts() {
+      document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      st().select([]);
+      await sleep(300);
+    },
+
     /** 7. Export dialog. */
     async exportDialog() {
       st().setPanelTab("properties");

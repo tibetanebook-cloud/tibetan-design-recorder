@@ -471,13 +471,17 @@ async function runShowcase(win: BrowserWindow, hooks: Hooks, page: <T>(code: str
     ["closeEditor", ""],
     ["library", "05-titles-library"],
     ["captions", "06-captions"],
+    ["fonts", "08-fonts"], // hundreds of fonts to draw: give it time (see wait below)
+    ["closeFonts", ""],
     ["exportDialog", "07-export"],
     ["closeExport", ""],
   ];
   for (const [step, name] of shots) {
-    await page(`window.__showcase.${step}()`);
+    // User gesture: the font step opens the list, which reads this computer's fonts.
+    const result = await win.webContents.executeJavaScript(`window.__showcase.${step}()`, true);
+    if (result) console.log(`showcase: ${step}`, JSON.stringify(result));
     if (!name) continue;
-    await wait(900);
+    await wait(step === "fonts" ? 4000 : 900);
     await fs.writeFile(join(outDir, `${name}.png`), await snapshot(win));
     console.log(`showcase: ${name}.png`);
   }

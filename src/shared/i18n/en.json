@@ -704,7 +704,9 @@
     "computer": "On This Computer",
     "loadComputer": "Use Fonts From This Computer",
     "loading": "Loading fonts…",
-    "denied": "Couldn't read this computer's fonts. The built-in fonts still work."
+    "denied": "Couldn't read this computer's fonts. The built-in fonts still work.",
+    "search": "Search fonts…",
+    "none": "No font matches."
   },
   "inline": {
     "edit": "Edit text (Enter saves, Shift+Enter new line, Esc cancels)",

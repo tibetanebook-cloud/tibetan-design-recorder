@@ -1,5 +1,11 @@
 # Release notes
 
+## 0.2.2 — all your fonts (2026-10-23)
+
+- The font option (text, callouts, titles, captions) now opens a searchable list of **every font
+  installed on your computer**: Tibetan fonts first with a ཀ་ཁ་ག་ང་། sample, then all others, each
+  name shown in its own font. Type to search; Enter picks the first match.
+
 ## 0.2.1 — fixes (2026-10-23)
 
 - Fixed: on some PCs the app stopped at its first start with "A JavaScript error occurred in the
