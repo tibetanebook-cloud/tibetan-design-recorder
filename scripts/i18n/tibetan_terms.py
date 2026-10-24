@@ -166,7 +166,7 @@ Research Center, 2007).
 
 Spelling fixes applied to the dictionary's Word text layer: stray spaces inside words
 removed (e.g. ཁ་འ བྱེད → ཁ་འབྱེད); སྒེའྲ་ཁུང → སྒེའུ་ཁུང (window); སྒྲབ → སྒྲུབ (custom, progress).
-The app name བོད་ཀྱི་བརྙན་ལེན། was chosen by the owner.
+The app name ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས། was chosen by the owner.
 
 To review: open `tibetan-review.csv` (Excel or LibreOffice), fill in `reviewer_tibetan`
 for any term to change, then run `python scripts/i18n/tibetan_terms.py import <file>`.

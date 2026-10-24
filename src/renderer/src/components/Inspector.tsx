@@ -10,6 +10,7 @@ import { useEditor } from "../store";
 import { formatTimecode } from "../util/time";
 import { CameraSettings, CursorPanel, FramePanel, WebcamPanel, ZoomPanel } from "./StylePanels";
 import { AudioFxPanel, ContentProps, GreenScreenPanel, TextStyleProps, TransitionProps } from "./ToolPanels";
+import { WebcamLookPanel, WebcamShapePanel } from "./WebcamStyle";
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
 
@@ -27,6 +28,8 @@ export function Inspector() {
     !lane ? null : lane.kind === "webcam" ? (
       <>
         <WebcamPanel />
+        <WebcamShapePanel />
+        <WebcamLookPanel />
         <GreenScreenPanel />
       </>
     ) : lane.kind === "cursor" ? <CursorPanel /> : lane.kind === "screen" ? <FramePanel /> : ops.isAudioTrack(lane) ? <AudioFxPanel track={lane} /> : null;

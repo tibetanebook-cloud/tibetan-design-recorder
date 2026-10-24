@@ -1,6 +1,6 @@
 # Architecture
 
-Tibetan Design Recorder (བོད་ཀྱི་བརྙན་ལེན།) is an Electron + React + TypeScript + Vite
+Nangchen T. Studio Screen Recorder (ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།) is an Electron + React + TypeScript + Vite
 desktop app. PixiJS composes frames; FFmpeg encodes them (Stage 6).
 
 ## Why Electron (not Tauri)
@@ -61,7 +61,7 @@ drift. The details of each helper are informed by the REA clean-room analysis in
 - **Capture backend: Chromium** (all three OSes). A hidden capture window opens each input
   and runs one MediaRecorder per input, streaming chunks to main, which writes
   `screen.webm`, `webcam.webm`, `mic.webm`, `system.webm`, `cursor.jsonl` and `take.json` into
-  `Videos/Tibetan Design Recorder/<take-id>/`. On Windows, Chromium itself uses Windows
+  `Videos/Nangchen T. Studio Screen Recorder/<take-id>/`. On Windows, Chromium itself uses Windows
   Graphics Capture for the screen and WASAPI loopback for system audio.
 - **Sync**: every input is opened and its recorder started-then-paused during the countdown
   (encoders warm up, ~0.7 s for H.264); at "go" the take clock starts and all recorders resume

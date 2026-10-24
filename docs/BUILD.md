@@ -61,7 +61,7 @@ to `resources/licenses/`; the app ships them. Only `uiohook-napi` and `zod` are 
 The packaged app can test itself (results go to the temp folder it prints):
 
 ```bash
-"dist/win-unpacked/Tibetan Design Recorder.exe" --smoke-test --no-record --l10n
+"dist/win-unpacked/Nangchen T. Studio Screen Recorder.exe" --smoke-test --no-record --l10n
 ```
 
 ### Building on GitHub (macOS and Linux)

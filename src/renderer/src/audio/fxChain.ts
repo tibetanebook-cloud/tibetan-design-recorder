@@ -62,7 +62,20 @@ export class FxChain {
       this.denoise = new AudioWorkletNode(ctx, "tdr-denoise", { outputChannelCount: [2], parameterData: { amount: this.amount } });
       this.high.disconnect();
       this.high.connect(this.denoise).connect(this.compressor);
+      this.routedThroughDenoise = true;
+      this.route(this.amount > 0);
     });
+  }
+
+  private routedThroughDenoise = true;
+
+  /** Send audio through the noise worklet only while noise removal is on. */
+  private route(throughDenoise: boolean): void {
+    if (!this.denoise || throughDenoise === this.routedThroughDenoise) return;
+    this.high.disconnect();
+    if (throughDenoise) this.high.connect(this.denoise);
+    else this.high.connect(this.compressor);
+    this.routedThroughDenoise = throughDenoise;
   }
 
   get denoiseReady(): boolean {
@@ -89,6 +102,7 @@ export class FxChain {
     this.amount = fx?.noise.enabled ? fx.noise.amount : 0;
     const p = this.denoise?.parameters.get("amount");
     if (p) set(p, this.amount);
+    this.route(this.amount > 0);
   }
 
   disconnect(): void {

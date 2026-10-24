@@ -17,6 +17,7 @@ import { useEditor, type PanelTab } from "../store";
 import { formatTimecode } from "../util/time";
 import { WALLPAPERS } from "../compositor/wallpapers";
 import { Inspector, Check, NumberField, pct, Section, Slider } from "./Inspector";
+import { FontPicker } from "./FontPicker";
 import { TITLE_TEMPLATES } from "./ToolPanels";
 import { wallpaperThumb } from "./StylePanels";
 
@@ -260,6 +261,7 @@ function CaptionsPanel() {
 
       <Section title={t("captions.style")}>
         <Slider label={t("inspector.size")} value={style.fontSize} min={20} max={96} step={1} format={(v) => `${Math.round(v)}`} onPreview={(v) => setStyle({ fontSize: v })} />
+        <FontPicker value={style.fontFamily} onChange={(fontFamily) => edit("captions.style", setStyle({ fontFamily }))} />
         <label className="prop">
           <span className="prop-label">{t("inspector.color")}</span>
           <input type="color" value={style.color} onChange={(e) => edit("captions.style", setStyle({ color: e.target.value }))} />

@@ -15,6 +15,8 @@ import {
   Application,
   BlurFilter,
   CanvasTextMetrics,
+  Color,
+  type Filter,
   Container,
   Graphics,
   Rectangle,
@@ -25,7 +27,9 @@ import {
   VideoSource,
   type TextureSource,
 } from "pixi.js";
-import type { Background, ClipContent } from "@shared/project/schema";
+import type { Background, ClipContent, WebcamBorder } from "@shared/project/schema";
+import { growOutline, resolveGrade, sampleOutline, shapeOutline } from "@shared/effects/webcamStyle";
+import { isNeutralLook, LookFilter } from "./lookFilter";
 import type { Scene, SceneCaption, SceneCursor, SceneLayer, SceneQuiz } from "@shared/scene/buildScene";
 import { cubicBezier, EASING_CURVES } from "@shared/effects/easing";
 import { ChromaKeyFilter } from "./chromaKey";
@@ -45,6 +49,29 @@ type Box = { x: number; y: number; width: number; height: number };
 interface TextOpts {
   bold?: boolean;
   align?: "left" | "center" | "right";
+  fontFamily?: string;
+}
+
+/** Where a piece of editable text was drawn this frame (canvas pixels), for double-click editing. */
+export interface TextBox {
+  clipId: string;
+  field: "text" | "title" | "subtitle" | "caption";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  lang: string;
+  /** Font size on the canvas, for sizing the editor. */
+  fontSize: number;
+  align: "left" | "center" | "right";
+}
+
+/** CSS font-family list: the chosen font first, then the built-in fallbacks (Tibetan always renders). */
+export function fontStack(fontFamily: string | undefined, tibetan: boolean): string {
+  const base = tibetan ? `${TIBETAN_FONT}, ${LATIN_FONT}` : `${LATIN_FONT}, ${TIBETAN_FONT}`;
+  if (!fontFamily) return base;
+  const safe = fontFamily.replace(/["\\]/g, "");
+  return `"${safe}", ${base}`;
 }
 
 /** Our own cursor artwork (unit height, hotspot at 0,0). */
@@ -58,11 +85,27 @@ export class Compositor {
   private readonly images = new Map<string, HTMLImageElement>();
   private readonly blurFilters = new Map<string, BlurFilter>();
   private readonly chromaFilter = new ChromaKeyFilter();
+  private readonly lookFilter = new LookFilter();
   /** Render textures made for this frame only (redaction snapshots). */
   private frameTextures: Texture[] = [];
 
-  /** Output scale: the exporter renders a 1080p project at 0.75 for a 810p file, etc. */
+  /** Output scale: the exporter renders a 1080p project at 0.75 for a 810p file; the preview at its on-screen size. */
   scale = 1;
+  /**
+   * Preview only: upload a video's frame to the GPU only when the video has
+   * produced a new one (requestVideoFrameCallback), instead of every redraw.
+   * The exporter leaves this off, because it seeks and draws each frame itself.
+   */
+  onlyNewVideoFrames = false;
+  private readonly freshFrame = new WeakMap<HTMLVideoElement, boolean>();
+
+  private watchFrames(el: HTMLVideoElement): void {
+    const mark = () => {
+      this.freshFrame.set(el, true);
+      el.requestVideoFrameCallback(mark);
+    };
+    el.requestVideoFrameCallback(mark);
+  }
 
   /** Called when an asset (wallpaper image, device frame…) finishes loading, so the host can redraw. */
   onAssetLoaded?: () => void;
@@ -86,7 +129,14 @@ export class Compositor {
     if (this.app.renderer.width !== width || this.app.renderer.height !== height) this.app.renderer.resize(width, height);
   }
 
+  /** Editable text drawn in the last frame (topmost last). */
+  textBoxes: TextBox[] = [];
+  private hit(clipId: string, field: TextBox["field"], b: Box, lang: string, fontSize: number, align: TextBox["align"] = "center"): void {
+    this.textBoxes.push({ clipId, field, x: b.x, y: b.y, width: b.width, height: b.height, lang, fontSize, align });
+  }
+
   render(scene: Scene): void {
+    this.textBoxes = [];
     this.resize(Math.round(scene.width * this.scale), Math.round(scene.height * this.scale));
     this.root.scale.set(this.scale);
     this.clearFrame();
@@ -328,18 +378,96 @@ export class Compositor {
     if (!sprite) return null;
     // The picture's real outline (letterboxing removed) for mask and shadow.
     const box = { x: Math.min(sprite.x, sprite.x + sprite.width * Math.sign(sprite.scale.x)), y: sprite.y, width: Math.abs(sprite.width), height: sprite.height };
-    const outline = layer.squircle
-      ? squirclePath(box, layer.cornerRadius)
-      : layer.cornerRadius > 0
-        ? circlePath(box, layer.cornerRadius)
-        : [box.x, box.y, box.x + box.width, box.y, box.x + box.width, box.y + box.height, box.x, box.y + box.height];
+    const cam = layer.webcam;
+    const outline = cam?.shaped
+      ? shapeOutline(cam.shape, box, cam.roundness)
+      : layer.squircle
+        ? squirclePath(box, layer.cornerRadius)
+        : layer.cornerRadius > 0
+          ? circlePath(box, layer.cornerRadius)
+          : [box.x, box.y, box.x + box.width, box.y, box.x + box.width, box.y + box.height, box.x, box.y + box.height];
     if (layer.shadow > 0) node.addChild(this.shadow(outline, layer.shadow, unit));
     node.addChild(sprite);
-    if (layer.chroma) sprite.filters = [this.chromaFilter.set(layer.chroma)];
-    if (layer.cornerRadius > 0) {
+    // Webcam filters: green screen first, then the look (beauty + colour).
+    const filters: Filter[] = [];
+    if (layer.chroma) filters.push(this.chromaFilter.set(layer.chroma));
+    if (cam) {
+      const grade = resolveGrade(cam.look.preset, cam.look);
+      if (!isNeutralLook(cam.look, grade)) {
+        const videoH = media instanceof HTMLVideoElement ? media.videoHeight : media.naturalHeight;
+        filters.push(this.lookFilter.set(cam.look, grade, Math.max(1.5, videoH / 240)));
+      }
+    }
+    sprite.filters = filters.length ? filters : null;
+    if ((cam?.shaped && cam.shape !== "square") || (!cam?.shaped && layer.cornerRadius > 0)) {
       const mask = new Graphics().poly(outline).fill(0xffffff);
       node.addChild(mask);
       sprite.mask = mask;
+    }
+    if (cam?.shaped && cam.border.style !== "none" && cam.border.width > 0) node.addChild(this.drawBorder(outline, box, cam.border, unit, layer.localMs));
+    return node;
+  }
+
+  /** Webcam border styles, drawn on the shape outline. */
+  private drawBorder(outline: number[], box: Box, b: WebcamBorder, unit: number, timeMs: number): Container {
+    const w = Math.max(1, b.width * unit);
+    const node = new Container();
+    const line = (pts: number[], color: string | number, width: number, alpha = 1) =>
+      new Graphics().poly(pts).stroke({ color, width, alpha, join: "round" });
+    /** Short segments along the outline, each with its own colour (gradient, rainbow). */
+    const colourful = (colorAt: (t: number) => number) => {
+      const g = new Graphics();
+      const pts = sampleOutline(outline, 3);
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i]!, c = pts[(i + 1) % pts.length]!;
+        g.moveTo(a.x, a.y).lineTo(c.x, c.y).stroke({ color: colorAt(a.t), width: w, cap: "round" });
+      }
+      return g;
+    };
+    const c1 = new Color(b.color), c2 = new Color(b.color2);
+    const mix = (t: number) => {
+      const k = 0.5 - 0.5 * Math.cos(t * Math.PI * 2);
+      const a = c1.toRgbArray(), z = c2.toRgbArray();
+      return new Color([0, 1, 2].map((i) => a[i]! + (z[i]! - a[i]!) * k)).toNumber();
+    };
+    const glow = (color: string, width: number, strength: number) => {
+      const g = line(outline, color, width, 0.9);
+      g.filters = [this.blur(`glow${Math.round(strength)}`, strength, 3)];
+      return g;
+    };
+    switch (b.style) {
+      case "solid":
+        node.addChild(line(outline, b.color, w));
+        break;
+      case "double":
+        node.addChild(line(outline, b.color, w * 0.45), line(growOutline(outline, box, w * 0.9), b.color2, w * 0.45));
+        break;
+      case "gradient":
+        node.addChild(colourful(mix));
+        break;
+      case "rainbow":
+        // Slowly turning rainbow (driven by the timeline time, so export matches the preview).
+        node.addChild(colourful((t) => new Color({ h: ((t + timeMs / 6000) % 1) * 360, s: 85, l: 58 }).toNumber()));
+        break;
+      case "glow":
+        node.addChild(glow(b.color, w * 2.2, w * 1.4), line(outline, b.color, w * 0.6));
+        break;
+      case "neon":
+        node.addChild(glow(b.color2, w * 3, w * 2), glow(b.color, w * 1.6, w * 0.8), line(outline, "#ffffff", Math.max(1, w * 0.35), 0.95));
+        break;
+      case "dashed": {
+        const g = new Graphics();
+        const pts = sampleOutline(outline, w * 1.6);
+        for (let i = 0; i < pts.length; i += 2) {
+          const a = pts[i]!, c = pts[(i + 1) % pts.length]!;
+          g.moveTo(a.x, a.y).lineTo(c.x, c.y).stroke({ color: b.color, width: w, cap: "round" });
+        }
+        node.addChild(g);
+        break;
+      }
+      case "ring":
+        node.addChild(line(growOutline(outline, box, w * 1.3), b.color, w * 0.6));
+        break;
     }
     return node;
   }
@@ -399,10 +527,11 @@ export class Compositor {
   private drawText(layer: SceneLayer, c: Content<"text">): Container {
     const f = layer.frame;
     const a = layer.textAnim;
-    const opts = { bold: c.bold, align: c.align };
+    const opts = { bold: c.bold, align: c.align, fontFamily: c.fontFamily };
     // The full text decides the box, so a typewriter reveal does not make it jump.
     const full = this.text(layer.clipId, c.text, c.fontSize, c.color, c.lang, f.width, f.x, f.y, opts);
     const box = Compositor.textBox(full);
+    this.hit(layer.clipId, "text", box, c.lang, c.fontSize, c.align);
     const shown = a && a.text !== c.text ? this.text(`${layer.clipId}|tw`, a.text, c.fontSize, c.color, c.lang, f.width, f.x, f.y, opts) : full;
     if (shown !== full) shown.position.set(full.x - (full.anchor.x - shown.anchor.x) * full.width, full.y);
     const wrap = new Container();
@@ -430,10 +559,11 @@ export class Compositor {
   private drawCallout(layer: SceneLayer, c: Content<"callout">, unit: number): Container {
     const f = layer.frame;
     const pad = c.fontSize * 0.55;
-    const text = this.text(layer.clipId, c.text, c.fontSize, c.color, c.lang, Math.max(20, f.width - pad * 2), f.x + pad, f.y, { bold: true });
+    const text = this.text(layer.clipId, c.text, c.fontSize, c.color, c.lang, Math.max(20, f.width - pad * 2), f.x + pad, f.y, { bold: true, fontFamily: c.fontFamily });
     const h = Math.max(f.height, text.height + pad * 1.2);
     const box = { x: f.x, y: f.y + (f.height - h) / 2, width: f.width, height: h };
     text.position.set(box.x + box.width / 2, box.y + (box.height - text.height) / 2);
+    this.hit(layer.clipId, "text", box, c.lang, c.fontSize);
     const radius = c.style === "pill" ? box.height / 2 : c.style === "bubble" ? Math.min(box.height / 2, 28 * unit + c.fontSize * 0.3) : 6 * unit;
     const border = { color: c.border, width: Math.max(2, 4 * unit) };
     const g = new Graphics();
@@ -503,7 +633,7 @@ export class Compositor {
       case "lowerThird": {
         const x = 96 * u, h = (c.subtitle ? 150 : 104) * u, y = H - h - 110 * u;
         const tw = Math.min(W * 0.55, 1000 * u);
-        const title = this.text(`${layer.clipId}|t`, c.title, 54 * u, c.color, c.lang, tw, x + 40 * u, 0, { bold: true, align: "left" });
+        const title = this.text(`${layer.clipId}|t`, c.title, 54 * u, c.color, c.lang, tw, x + 40 * u, 0, { bold: true, align: "left", fontFamily: c.fontFamily });
         const w = Math.min(tw, title.width) + 80 * u;
         node.addChild(new Graphics().roundRect(x, y, w * e, h, 10 * u).fill({ color: c.background, alpha: 0.92 }));
         node.addChild(new Graphics().rect(x, y, 10 * u, h * e).fill(c.accent));
@@ -512,37 +642,43 @@ export class Compositor {
         const texts = new Container();
         texts.addChild(rise(title, e2));
         if (c.subtitle) {
-          const sub = this.text(`${layer.clipId}|s`, c.subtitle, 32 * u, c.accent, c.lang, tw, x + 40 * u, 0, { align: "left" });
+          const sub = this.text(`${layer.clipId}|s`, c.subtitle, 32 * u, c.accent, c.lang, tw, x + 40 * u, 0, { align: "left", fontFamily: c.fontFamily });
           sub.position.set(x + 40 * u, y + h - sub.height - 14 * u);
           texts.addChild(rise(sub, e2));
         }
         texts.addChild(mask);
         texts.mask = mask;
         node.addChild(texts);
+        this.hit(layer.clipId, "title", Compositor.textBox(title), c.lang, 54 * u, "left");
+        if (c.subtitle) this.hit(layer.clipId, "subtitle", { x: x + 40 * u, y: y + h - 32 * u * 2.2, width: tw, height: 32 * u * 2 }, c.lang, 32 * u, "left");
         return node;
       }
       case "chapter": {
         node.addChild(new Graphics().rect(f.x, f.y, f.width, f.height).fill({ color: c.background, alpha: 0.88 * e }));
         const x = f.x + 180 * u;
         const bar = new Graphics().rect(x - 40 * u, f.y + f.height / 2 - 90 * u, 12 * u, 180 * u * e).fill(c.accent);
-        const sub = this.text(`${layer.clipId}|s`, c.subtitle, 36 * u, c.accent, c.lang, f.width - 400 * u, x, 0, { align: "left" });
+        const sub = this.text(`${layer.clipId}|s`, c.subtitle, 36 * u, c.accent, c.lang, f.width - 400 * u, x, 0, { align: "left", fontFamily: c.fontFamily });
         sub.position.set(x, f.y + f.height / 2 - 100 * u);
-        const title = this.text(`${layer.clipId}|t`, c.title, 88 * u, c.color, c.lang, f.width - 400 * u, x, 0, { bold: true, align: "left" });
+        const title = this.text(`${layer.clipId}|t`, c.title, 88 * u, c.color, c.lang, f.width - 400 * u, x, 0, { bold: true, align: "left", fontFamily: c.fontFamily });
         title.position.set(x, f.y + f.height / 2 - 40 * u);
         node.addChild(bar, rise(sub, e), rise(title, e2));
+        this.hit(layer.clipId, "subtitle", Compositor.textBox(sub), c.lang, 36 * u, "left");
+        this.hit(layer.clipId, "title", Compositor.textBox(title), c.lang, 88 * u, "left");
         return node;
       }
       case "quote": {
         node.addChild(new Graphics().rect(f.x, f.y, f.width, f.height).fill({ color: c.background, alpha: 0.85 * e }));
         const mark = this.text(`quote|${c.accent}`, "“", 220 * u, c.accent, "en", 400 * u, f.x + f.width / 2 - 200 * u, 0);
         mark.position.set(f.x + f.width / 2, f.y + f.height / 2 - 300 * u);
-        const body = this.text(`${layer.clipId}|t`, c.title, 64 * u, c.color, c.lang, Math.min(f.width * 0.7, 1300 * u), f.x + f.width * 0.15, 0);
+        const body = this.text(`${layer.clipId}|t`, c.title, 64 * u, c.color, c.lang, Math.min(f.width * 0.7, 1300 * u), f.x + f.width * 0.15, 0, { fontFamily: c.fontFamily });
         body.position.set(f.x + f.width / 2, f.y + f.height / 2 - body.height / 2);
         node.addChild(rise(mark, e), rise(body, e2));
+        this.hit(layer.clipId, "title", Compositor.textBox(body), c.lang, 64 * u);
         if (c.subtitle) {
-          const by = this.text(`${layer.clipId}|s`, `— ${c.subtitle}`, 36 * u, c.accent, c.lang, f.width * 0.7, f.x + f.width * 0.15, 0);
+          const by = this.text(`${layer.clipId}|s`, `— ${c.subtitle}`, 36 * u, c.accent, c.lang, f.width * 0.7, f.x + f.width * 0.15, 0, { fontFamily: c.fontFamily });
           by.position.set(f.x + f.width / 2, body.y + body.height + 24 * u);
           node.addChild(rise(by, e2));
+          this.hit(layer.clipId, "subtitle", Compositor.textBox(by), c.lang, 36 * u);
         }
         return node;
       }
@@ -550,8 +686,8 @@ export class Compositor {
         // center, intro, outro
         const card = c.template !== "center";
         if (card) node.addChild(new Graphics().rect(f.x, f.y, f.width, f.height).fill(c.background));
-        const title = this.text(`${layer.clipId}|t`, c.title, (card ? 112 : 96) * u, c.color, c.lang, f.width * 0.8, f.x + f.width * 0.1, 0, { bold: true });
-        const sub = c.subtitle ? this.text(`${layer.clipId}|s`, c.subtitle, 44 * u, card ? c.accent : c.color, c.lang, f.width * 0.8, f.x + f.width * 0.1, 0) : undefined;
+        const title = this.text(`${layer.clipId}|t`, c.title, (card ? 112 : 96) * u, c.color, c.lang, f.width * 0.8, f.x + f.width * 0.1, 0, { bold: true, fontFamily: c.fontFamily });
+        const sub = c.subtitle ? this.text(`${layer.clipId}|s`, c.subtitle, 44 * u, card ? c.accent : c.color, c.lang, f.width * 0.8, f.x + f.width * 0.1, 0, { fontFamily: c.fontFamily }) : undefined;
         const gap = 36 * u;
         const total = title.height + (sub ? gap + sub.height : 0);
         const top = f.y + (f.height - total) / 2;
@@ -560,9 +696,11 @@ export class Compositor {
         const lineY = c.template === "outro" ? top - 40 * u : top + title.height + gap / 2 - 3 * u;
         node.addChild(new Graphics().roundRect(f.x + f.width / 2 - lineW / 2, lineY, lineW, 6 * u, 3 * u).fill(c.accent));
         node.addChild(rise(title, e));
+        this.hit(layer.clipId, "title", { ...Compositor.textBox(title), y: top }, c.lang, (card ? 112 : 96) * u);
         if (sub) {
           sub.position.set(f.x + f.width / 2, top + title.height + gap);
           node.addChild(rise(sub, e2));
+          this.hit(layer.clipId, "subtitle", { ...Compositor.textBox(sub), y: top + title.height + gap }, c.lang, 44 * u);
         }
         return node;
       }
@@ -613,14 +751,15 @@ export class Compositor {
     const st = cap.style;
     const size = st.fontSize * u;
     const maxW = (W * st.maxWidthPct) / 100;
-    const text = this.text(`cap|${st.color}`, cap.text, size, st.color, cap.lang, maxW, (W - maxW) / 2, 0);
+    const text = this.text(`cap|${st.color}`, cap.text, size, st.color, cap.lang, maxW, (W - maxW) / 2, 0, { fontFamily: st.fontFamily });
     // Keep at most `rows` lines (the newest words).
     const lines = text.text.split("\n");
-    const shown = lines.length > st.rows ? this.text(`cap|${st.color}|rows`, lines.slice(-st.rows).join("\n"), size, st.color, cap.lang, maxW + 1, (W - maxW - 1) / 2, 0) : text;
+    const shown = lines.length > st.rows ? this.text(`cap|${st.color}|rows`, lines.slice(-st.rows).join("\n"), size, st.color, cap.lang, maxW + 1, (W - maxW - 1) / 2, 0, { fontFamily: st.fontFamily }) : text;
     const padX = size * 0.5, padY = size * (cap.lang === "bo" ? 0.15 : 0.25);
     const bh = shown.height + padY * 2;
     const y = st.position === "bottom" ? H - (H * st.offsetPct) / 100 - bh : (H * st.offsetPct) / 100;
     shown.position.set(W / 2, y + padY);
+    this.hit(cap.clipId, "caption", Compositor.textBox(shown), cap.lang, size);
     const node = new Container();
     if (st.backgroundOpacity > 0) {
       const bw = shown.width + padX * 2;
@@ -774,8 +913,12 @@ export class Compositor {
       if (!v) {
         v = new VideoSource({ resource: el, autoPlay: false, autoLoad: true, updateFPS: 0 });
         this.videoSources.set(el, v);
+        if (this.onlyNewVideoFrames) this.watchFrames(el);
+        v.update();
+      } else if (!this.onlyNewVideoFrames || this.freshFrame.get(el) !== false) {
+        v.update(); // pull the current frame
+        if (this.onlyNewVideoFrames) this.freshFrame.set(el, false);
       }
-      v.update(); // pull the current frame
       source = v;
     } else {
       let img = this.imageSources.get(el);
@@ -799,11 +942,11 @@ export class Compositor {
   private text(id: string, value: string, size: number, color: string, lang: string, width: number, x: number, y: number, opts: TextOpts = {}): Text {
     const tibetan = lang === "bo";
     const align = opts.align ?? "center";
-    const key = `${id}|${value}|${size}|${color}|${lang}|${width}|${opts.bold ? "b" : ""}${align}`;
+    const key = `${id}|${value}|${size}|${color}|${lang}|${width}|${opts.bold ? "b" : ""}${align}|${opts.fontFamily ?? ""}`;
     let text = this.textCache.get(key);
     if (!text) {
       const style = new TextStyle({
-        fontFamily: tibetan ? TIBETAN_FONT : LATIN_FONT,
+        fontFamily: fontStack(opts.fontFamily, tibetan),
         fontSize: size,
         fontWeight: opts.bold ? "700" : "400",
         fill: color,
@@ -832,8 +975,10 @@ export class Compositor {
     const { pixels, width } = this.app.renderer.extract.pixels({ target: this.app.stage, frame: new Rectangle(0, 0, this.app.renderer.width, this.app.renderer.height) });
     const r0 = parseInt(hex.slice(1, 3), 16), g0 = parseInt(hex.slice(3, 5), 16), b0 = parseInt(hex.slice(5, 7), 16);
     let near = 0, detail = 0, total = 0;
-    const x0 = Math.max(0, Math.round(r.x)), y0 = Math.max(0, Math.round(r.y));
-    const x1 = Math.min(width - 1, Math.round(r.x + r.width)), y1 = Math.min(pixels.length / 4 / width - 1, Math.round(r.y + r.height));
+    // r is in canvas (project) pixels; the renderer may be drawing at a smaller scale.
+    const k = this.scale;
+    const x0 = Math.max(0, Math.round(r.x * k)), y0 = Math.max(0, Math.round(r.y * k));
+    const x1 = Math.min(width - 1, Math.round((r.x + r.width) * k)), y1 = Math.min(pixels.length / 4 / width - 1, Math.round((r.y + r.height) * k));
     for (let y = y0; y < y1; y++)
       for (let x = x0; x < x1; x++) {
         const i = (y * width + x) * 4;

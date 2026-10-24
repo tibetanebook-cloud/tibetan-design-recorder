@@ -29,8 +29,8 @@ describe("UI strings", () => {
   });
 
   it("the app name is the owner's chosen Tibetan name", () => {
-    expect(translate("bo", "app.name")).toBe("བོད་ཀྱི་བརྙན་ལེན།");
-    expect(translate("en", "app.name")).toBe("Tibetan Design Recorder");
+    expect(translate("bo", "app.name")).toBe("ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།");
+    expect(translate("en", "app.name")).toBe("Nangchen T. Studio Screen Recorder");
   });
 
   it("every menu and menu item label is translated", () => {

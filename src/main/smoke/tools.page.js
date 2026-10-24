@@ -102,6 +102,7 @@
     st().edit("t", (p) => ({ ...p, layouts: [] }));
 
     // 5. Green screen on the webcam (Chromium's fake camera is bright green).
+    T.compositor.current.scale = 1; // count pixels at full resolution
     await frame(1500);
     const camLayer = cam(1500);
     const camRect = camLayer.frame;

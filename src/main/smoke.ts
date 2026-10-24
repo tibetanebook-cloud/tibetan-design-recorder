@@ -19,6 +19,7 @@ import { inputHookAvailable } from "./recording/cursor-recorder";
 import timelineScript from "./smoke/timeline.page.js?raw";
 import effectsScript from "./smoke/effects.page.js?raw";
 import toolsScript from "./smoke/tools.page.js?raw";
+import styleScript from "./smoke/style.page.js?raw";
 import exportScript from "./smoke/export.page.js?raw";
 import l10nScript from "./smoke/l10n.page.js?raw";
 import { createServer } from "node:http";
@@ -33,6 +34,8 @@ interface Hooks {
   recorder: RecordingController;
   /** The path a double-clicked .tdrec takes into the window. */
   openProject: (path: string) => void;
+  /** Let the renderer write exports into this folder (normally only dialog-chosen paths). */
+  allowWriteDir: (dir: string) => void;
 }
 
 type Check = (name: string, ok: boolean, detail?: string) => void;
@@ -58,6 +61,7 @@ async function smokeRecording(
   check: Check,
   page: <T>(code: string) => Promise<T>,
   wait: (ms: number) => Promise<void>,
+  allowWriteDir: (dir: string) => void,
 ): Promise<void> {
   win.webContents.send(IPC.menuCommand, "view.recorder");
   await wait(3500);
@@ -195,7 +199,7 @@ async function smokeRecording(
   await fs.writeFile(join(outDir, "stage4-panels-bo.png"), await snapshot(win));
 
   await smokeTools(win, outDir, check, page, wait);
-  await smokeExport(win, outDir, check, page, wait, dir);
+  await smokeExport(win, outDir, check, page, wait, dir, allowWriteDir);
   await smokeL10n(win, outDir, check, page, wait);
 }
 
@@ -236,8 +240,12 @@ async function smokeL10n(win: BrowserWindow, outDir: string, check: Check, page:
 }
 
 /** Stage 6: export the edited take to every format and read the files back. */
-async function smokeExport(win: BrowserWindow, outDir: string, check: Check, page: <T>(code: string) => Promise<T>, wait: (ms: number) => Promise<void>, takeDir: string): Promise<void> {
+async function smokeExport(win: BrowserWindow, outDir: string, check: Check, page: <T>(code: string) => Promise<T>, wait: (ms: number) => Promise<void>, takeDir: string, allowWriteDir: (dir: string) => void): Promise<void> {
   const exportDir = join(takeDir, "exports");
+  allowWriteDir(exportDir);
+  // The write policy must refuse paths outside approved folders.
+  const refused = await page<boolean>(`window.tdr.exporter.open(${JSON.stringify(join(takeDir, "..", "not-allowed.mp4"))}).then(() => false, () => true)`);
+  check("security: export writer refuses a folder the user didn't choose", refused);
   await fs.rm(exportDir, { recursive: true, force: true });
   await fs.mkdir(exportDir, { recursive: true });
   await win.webContents.executeJavaScript("window.tdr.setLanguage('en')");
@@ -324,6 +332,16 @@ async function smokeTools(win: BrowserWindow, outDir: string, check: Check, page
   await wait(1000);
   await fs.writeFile(join(outDir, "stage5-jobs-bo.png"), await snapshot(win));
   await win.webContents.executeJavaScript("window.tdr.setLanguage('en')");
+
+  // v0.2: webcam shapes/borders/filters, playback smoothness, fonts, double-click editing.
+  // (Runs as a user gesture so the page may list this computer's fonts.)
+  await page("{ const s = window.__tdrTest.store.getState(); s.setPanelTab('properties'); s.select([]); s.selectTrack(null); } 0");
+  await wait(600);
+  const style = (await win.webContents.executeJavaScript(styleScript, true)) as { name: string; ok: boolean; detail?: string }[];
+  for (const r of style) check(`v0.2: ${r.name}`, r.ok, r.detail);
+  await page("{ const s = window.__tdrTest.store.getState(); const cam = s.history.present.tracks.find(t => t.kind === 'webcam'); s.edit('t', p => ({ ...p, webcam: { ...p.webcam, layout: 'bubble', shape: 'heart', border: { style: 'neon', width: 8, color: '#ff4fa3', color2: '#7b5cff' }, look: { ...p.webcam.look, preset: 'golden', smooth: 0.6 } } })); s.setPlayhead(1000); s.select([]); s.selectTrack(cam.id); } 0");
+  await wait(1500);
+  await fs.writeFile(join(outDir, "v02-webcam-style-en.png"), await snapshot(win));
 }
 
 /** A believable cursor log for the effects test (display-normalized coordinates). */
@@ -414,7 +432,7 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     const info = await hooks.recovery.check();
     check("crash recovery detects autosave", info.available && info.projectName === "Smoke test");
 
-    if (!process.argv.includes("--no-record")) await smokeRecording(win, hooks.recorder, outDir, check, page, wait);
+    if (!process.argv.includes("--no-record")) await smokeRecording(win, hooks.recorder, outDir, check, page, wait, hooks.allowWriteDir);
     else if (process.argv.includes("--l10n")) await smokeL10n(win, outDir, check, page, wait);
   } catch (error) {
     check("smoke test ran", false, String(error));

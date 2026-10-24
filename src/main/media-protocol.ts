@@ -7,6 +7,7 @@ import { protocol } from "electron";
 import { createReadStream, promises as fs } from "node:fs";
 import { extname } from "node:path";
 import { Readable } from "node:stream";
+import { READABLE_EXTENSIONS } from "./security";
 
 export const MEDIA_SCHEME = "tdr-media";
 /** Lets WebGL read video pixels served from this scheme (our own pages only load it). */
@@ -21,8 +22,18 @@ const MIME: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".json": "application/json",
   ".jsonl": "application/x-ndjson",
+  ".mov": "video/quicktime",
+  ".mkv": "video/x-matroska",
+  ".m4v": "video/mp4",
+  ".aac": "audio/aac",
+  ".ogg": "audio/ogg",
+  ".opus": "audio/ogg",
+  ".flac": "audio/flac",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".srt": "text/plain; charset=utf-8",
+  ".vtt": "text/vtt; charset=utf-8",
 };
 
 /** Must run before app ready. */
@@ -36,6 +47,8 @@ export function handleMediaProtocol(): void {
   protocol.handle(MEDIA_SCHEME, async (request) => {
     const url = new URL(request.url);
     const path = decodeURIComponent(url.pathname.replace(/^\//, ""));
+    // Media and caption files only: the page can't use this to read other files.
+    if (!READABLE_EXTENSIONS.has(extname(path).toLowerCase()) || path.includes("\0")) return new Response("Forbidden", { status: 403 });
     let size: number;
     try {
       const stat = await fs.stat(path);

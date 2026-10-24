@@ -105,7 +105,7 @@ describe("saving, reopening and crash recovery", () => {
 describe("opening a project from the command line", () => {
   it("finds the .tdrec path among the arguments (not flags, not the app itself)", async () => {
     const { projectArg } = await import("@shared/project/launchArgs");
-    expect(projectArg(["C:\App\Tibetan Design Recorder.exe", "D:\Lessons\ཀ་ཁ.tdrec"])).toBe("D:\Lessons\ཀ་ཁ.tdrec");
+    expect(projectArg(["C:\App\Nangchen T. Studio Screen Recorder.exe", "D:\Lessons\ཀ་ཁ.tdrec"])).toBe("D:\Lessons\ཀ་ཁ.tdrec");
     expect(projectArg(["app", "--smoke-test", "lesson.TDREC"])).toBe("lesson.TDREC");
     expect(projectArg(["app", "--flag=x.tdrec"])).toBeUndefined();
     expect(projectArg(["electron", "."])).toBeUndefined();

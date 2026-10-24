@@ -40,9 +40,32 @@ export async function exportClose(id: number, ok: boolean): Promise<{ path: stri
     await fs.rm(`${f.path}.part`, { force: true });
     return null;
   }
-  await fs.rm(f.path, { force: true });
-  await fs.rename(`${f.path}.part`, f.path);
+  await retryLocked(() => fs.rm(f.path, { force: true }));
+  try {
+    await retryLocked(() => fs.rename(`${f.path}.part`, f.path));
+  } catch (e) {
+    // Still locked by another program (the part file can be read but not moved): copy instead.
+    console.warn(`export rename blocked (${(e as NodeJS.ErrnoException).code}); copying instead`);
+    await fs.copyFile(`${f.path}.part`, f.path);
+    await retryLocked(() => fs.rm(`${f.path}.part`, { force: true })).catch(() => undefined);
+  }
   return { path: f.path, bytes: f.bytes };
+}
+
+/**
+ * Windows antivirus and the search indexer briefly lock a file that was just
+ * written; retry for up to ~4 s instead of failing the export.
+ */
+async function retryLocked(op: () => Promise<void>): Promise<void> {
+  for (let i = 0; ; i++) {
+    try {
+      return await op();
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if (i >= 12 || !(code === "EPERM" || code === "EBUSY" || code === "EACCES")) throw e;
+      await new Promise((r) => setTimeout(r, 50 * (i + 1)));
+    }
+  }
 }
 
 export async function closeAllExports(): Promise<void> {

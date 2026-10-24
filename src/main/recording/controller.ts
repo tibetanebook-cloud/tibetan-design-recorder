@@ -28,6 +28,7 @@ import {
 import type { Rect } from "@shared/project/schema";
 import { CursorRecorder } from "./cursor-recorder";
 import { TakeWriter } from "./take-writer";
+import { restrictPermissions } from "../security";
 
 type LoadPage = (win: BrowserWindow, view: string) => void;
 
@@ -41,6 +42,11 @@ export class RecordingController {
   private settings: RecordingSettings | null = null;
   private display: DisplayInfo | null = null;
   private captureWin: BrowserWindow | null = null;
+
+  /** Recording data is accepted only from the hidden capture window. */
+  private fromCapture(e: Electron.IpcMainEvent): boolean {
+    return !!this.captureWin && !this.captureWin.isDestroyed() && e.sender === this.captureWin.webContents;
+  }
   private hudWin: BrowserWindow | null = null;
   private bubbleWin: BrowserWindow | null = null;
   private tick: NodeJS.Timeout | null = null;
@@ -73,24 +79,27 @@ export class RecordingController {
     ipcMain.handle(REC.status, () => this.status);
     ipcMain.handle(REC.showBubble, (_e, deviceId: string | null) => this.showBubble(deviceId));
 
-    ipcMain.on(REC.trackStarted, (_e, p: TrackStartedPayload) => {
-      if (!this.writer) return;
+    ipcMain.on(REC.trackStarted, (e, p: TrackStartedPayload) => {
+      if (!this.fromCapture(e) || !this.writer) return;
       const size = p.width && p.height ? { width: p.width, height: p.height } : undefined;
       this.writer.setStart(p.kind, Math.max(0, this.clock.toRecording(p.wallMs)), size);
     });
-    ipcMain.on(REC.chunk, (_e, kind: TrackFileKind, data: Uint8Array) => {
+    ipcMain.on(REC.chunk, (e, kind: TrackFileKind, data: Uint8Array) => {
+      if (!this.fromCapture(e)) return;
       void this.writer?.write(kind, data).catch((err) => this.fail(String(err)));
     });
-    ipcMain.on(REC.captureDone, (_e, p: CaptureDonePayload) => this.captureDone?.(p));
-    ipcMain.on(REC.captureError, (_e, message: string) => this.fail(message));
-    ipcMain.on(REC.captureWarning, (_e, message: string) => {
+    ipcMain.on(REC.captureDone, (e, p: CaptureDonePayload) => this.fromCapture(e) && this.captureDone?.(p));
+    ipcMain.on(REC.captureError, (e, message: string) => this.fromCapture(e) && this.fail(String(message).slice(0, 500)));
+    ipcMain.on(REC.captureWarning, (e, raw: string) => {
+      if (!this.fromCapture(e)) return;
+      const message = String(raw).slice(0, 500);
       console.warn("Recording warning:", message);
       this.setStatus({ warnings: [...(this.status.warnings ?? []), message] });
     });
 
     // All our windows share the default session, so camera/mic device IDs chosen
     // in the setup screen are valid in the capture window too.
-    session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === "media" || permission === "display-capture"));
+    restrictPermissions(session.defaultSession);
     // getDisplayMedia() requests:
     //  - from the capture window: the source the user picked (+ Windows loopback audio);
     //  - from the setup screen: Windows loopback for the system-audio meter (the page
@@ -228,7 +237,8 @@ export class RecordingController {
     this.settings = settings;
     const d = screen.getAllDisplays().find((x) => String(x.id) === settings.screen.displayId) ?? screen.getPrimaryDisplay();
     this.display = { id: String(d.id), bounds: d.bounds, scaleFactor: d.scaleFactor };
-    this.writer = await TakeWriter.create(settings.outputDir ?? this.defaultOutputDir);
+    // Always the app's own recordings folder (the page can't choose where files are written).
+    this.writer = await TakeWriter.create(this.defaultOutputDir);
     this.setStatus({ phase: "countdown", countdown: settings.countdownSec, elapsedMs: 0, takeId: this.writer.id, takeDir: this.writer.dir, error: undefined, warnings: undefined });
     this.showHud();
     const main = this.mainWindow();

@@ -1,8 +1,42 @@
 # Release notes
 
+## 0.2.0 — new name, webcam styles and filters, fonts, in-place text editing
+
+The app is now called **Nangchen T. Studio Screen Recorder · ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།**. Settings, the library and autosaves from 0.1
+(Tibetan Design Recorder) are copied over the first time it starts.
+
+**Webcam**
+- Smoother webcam playback: small timing differences are corrected by gently adjusting
+  the speed instead of jumping, and new video frames are drawn only when they arrive.
+- Bubble shapes: circle, rounded, squircle, square, hexagon, diamond and heart, in 1:1,
+  4:3, 16:9, 3:4 or 9:16 proportions.
+- Borders: solid, double, gradient, glow, neon, dashed, ring and an animated rainbow, with
+  ready-made colour pairs.
+- Filters: skin smoothing (edge-preserving, keeps eyes and hair sharp), brighten face and
+  sharpen; 15 one-click looks (Natural, Warm, Cool, Vivid, Soft, Film, Vintage, Faded,
+  Black & White, Sepia, Dramatic, Rose, Teal & Orange, Golden Hour); and brightness,
+  contrast, saturation, warmth, tint, matte and vignette sliders. Preview and export match.
+
+**Text and titles**
+- Double-click any text, callout, title or caption on the preview to edit it in place
+  (Enter saves, Shift+Enter adds a line, Esc cancels; one undo step).
+- Font option for text, callouts, titles and captions, including any font installed on
+  your computer (Tibetan fonts listed first). Tibetan always falls back to Noto Serif Tibetan.
+
+**Tibetan** — every new control is translated; 42 new terms are added to the review list
+(docs/i18n/tibetan-review.csv).
+
+**Faster** — the preview draws at the size it is shown instead of always at full
+resolution, and noise removal costs nothing when it is off.
+
+**Security** — see [SECURITY.md](SECURITY.md): files are written only where you chose,
+the media protocol serves only media files, auto-captions send only audio/video to an
+https service, navigation and pop-ups are locked, test hooks are off in normal use, and
+the packaged app is hardened with Electron fuses.
+
 ## 0.1.0 — first complete build (2026-10-22)
 
-Tibetan Design Recorder · བོད་ཀྱི་བརྙན་ལེན། — a screen recorder and multi-track editor for
+Tibetan Design Recorder (now Nangchen T. Studio Screen Recorder) — a screen recorder and multi-track editor for
 teaching, in Tibetan and English.
 
 **Record** — screen, webcam, microphone and system audio, each as its own file and lane,

@@ -88,6 +88,8 @@ export function App() {
       void suggestWhenCursorLoaded();
     });
     void loadExtensions();
+    // Test hooks only exist in automated test runs, never in normal use.
+    if (window.tdr.testMode) {
     window.__tdrSmoke = () => ({
       lang: document.documentElement.lang,
       title: document.title,
@@ -99,6 +101,7 @@ export function App() {
     window.__tdrTest = { store: useEditor, runAction, importMedia, shortcuts: useShortcuts, playback, scene: (t: number) => buildScene(useEditor.getState().history.present, t, sceneContext()), tools, compositor: previewCompositor, command: run };
     // Bright green = Chromium's fake camera/screen test pattern (smoke test only).
     (window as unknown as { __tdrTestPixels: () => number }).__tdrTestPixels = () => previewCompositor.current?.countPixelsNear("#20ff20", 90) ?? 0;
+    }
     window.tdr.ready();
     return () => {
       offLang();

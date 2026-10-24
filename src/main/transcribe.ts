@@ -4,10 +4,21 @@
  * store (Electron safeStorage) before it is written to disk.
  */
 import { promises as fs } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, extname, join } from "node:path";
 import { safeStorage } from "electron";
 import { DEFAULT_TRANSCRIBE, MAX_UPLOAD_BYTES, parseVerboseJson, type TranscribeConfig, type TranscribeRequest, type TranscribeResult } from "@shared/captions/transcribe";
 import { writeFileAtomic } from "./project-io";
+import { TRANSCRIBABLE_EXTENSIONS } from "./security";
+
+/** https, or plain http only to this computer (a local speech server). */
+const safeEndpoint = (u: string) => {
+  try {
+    const url = new URL(u);
+    return url.protocol === "https:" || (url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname));
+  } catch {
+    return false;
+  }
+};
 
 interface Stored {
   baseUrl: string;
@@ -44,7 +55,11 @@ export class TranscribeService {
   /** key: new key, "" removes it, undefined keeps it. */
   async setConfig(patch: { baseUrl?: string; model?: string; key?: string }): Promise<TranscribeConfig> {
     const next = { ...this.stored };
-    if (patch.baseUrl !== undefined) next.baseUrl = patch.baseUrl.trim().replace(/\/+$/, "");
+    if (patch.baseUrl !== undefined) {
+      const url = String(patch.baseUrl).trim().replace(/\/+$/, "");
+      if (!safeEndpoint(url)) throw new Error("The address must start with https:// (or http://localhost for a local server).");
+      next.baseUrl = url;
+    }
     if (patch.model !== undefined) next.model = patch.model.trim();
     if (patch.key !== undefined) {
       if (!patch.key) delete next.key;
@@ -67,6 +82,9 @@ export class TranscribeService {
 
   async run(req: TranscribeRequest): Promise<TranscribeResult> {
     const fail = (error: string): TranscribeResult => ({ ok: false, error, words: [], segments: [] });
+    // Only audio/video files, only to a safe endpoint.
+    if (typeof req?.path !== "string" || !TRANSCRIBABLE_EXTENSIONS.has(extname(req.path).toLowerCase())) return fail("not-media");
+    if (!safeEndpoint(this.stored.baseUrl)) return fail("bad-endpoint");
     const key = this.key();
     if (!key && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(this.stored.baseUrl)) return fail("no-key");
     let data: Buffer;

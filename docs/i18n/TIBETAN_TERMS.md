@@ -3,13 +3,13 @@
 Source: *English–Tibetan–Chinese Information Technology Dictionary* (China Tibetology
 Research Center, 2007).
 
-- **D** — exact dictionary entry (181)
-- **C** — built from dictionary terms (195)
-- **N** — not in the dictionary; needs a native speaker's review (146)
+- **D** — exact dictionary entry (190)
+- **C** — built from dictionary terms (207)
+- **N** — not in the dictionary; needs a native speaker's review (188)
 
 Spelling fixes applied to the dictionary's Word text layer: stray spaces inside words
 removed (e.g. ཁ་འ བྱེད → ཁ་འབྱེད); སྒེའྲ་ཁུང → སྒེའུ་ཁུང (window); སྒྲབ → སྒྲུབ (custom, progress).
-The app name བོད་ཀྱི་བརྙན་ལེན། was chosen by the owner.
+The app name ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས། was chosen by the owner.
 
 To review: open `tibetan-review.csv` (Excel or LibreOffice), fill in `reviewer_tibetan`
 for any term to change, then run `python scripts/i18n/tibetan_terms.py import <file>`.
@@ -17,7 +17,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 
 | Key | English | Tibetan | Source | Note |
 |---|---|---|---|---|
-| `app.name` | Tibetan Design Recorder | བོད་ཀྱི་བརྙན་ལེན། | N | not in dictionary — please review (new syllables: བོད) |
+| `app.name` | Nangchen T. Studio Screen Recorder | ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས། | N | not in dictionary — please review (new syllables: བཀྲིས) |
 | `app.tagline` | Record and edit teaching videos | སློབ་ཁྲིད་བརྙན་ཟློས་ལེན་པ་དང་རྩོམ་སྒྲིག | C | built from dictionary terms: རྩོམ་སྒྲིག; བརྙན་ཟློས; ལེན་པ |
 | `app.version` | Version | པར་གཞི། | D | dictionary: version |
 | `menu.file` | File | ཡིག་ཆ། | D | dictionary: document, file |
@@ -56,6 +56,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `edit.move` | Move | སྤོ་བ། | D | dictionary: move |
 | `edit.trim` | Trim | མཐའ་དྲས། | N | not in dictionary — please review |
 | `edit.props` | Change Properties | གཏོགས་གཤིས་བཟོ་བཅོས། | C | built from dictionary terms: གཏོགས་གཤིས; བཟོ་བཅོས; བཟོ |
+| `edit.text` | Edit Text | ཡི་གེ་བཟོ་བཅོས། | C | built from dictionary terms: བཟོ་བཅོས; ཡི་གེ; བཟོ |
 | `view.recorder` | Recorder | བརྙན་ལེན་ཆས། | N | not in dictionary — please review |
 | `view.editor` | Editor | རྩོམ་སྒྲིག་ཆས། | D | dictionary: editor |
 | `view.zoomIn` | Zoom In | ཆེར་གཏོང་། | D | dictionary: zoom in |
@@ -98,7 +99,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `record.warn.inUse` | the device is busy in another program | སྒྲིག་ཆས་བྱ་རིམ་གཞན་ཞིག་གིས་བེད་སྤྱོད་བྱེད་བཞིན་འདུག | N | not in dictionary — please review (new syllables: ཞིག) |
 | `record.warn.noData` | nothing was recorded from this input | ནང་འཇུག་འདི་ནས་ཅི་ཡང་མ་ལེན། | C | built from dictionary terms: ནང་འཇུག |
 | `record.warn.noStart` | recording could not start | བརྙན་ལེན་འགོ་འཛུགས་མ་ཐུབ། | C | built from dictionary terms: འགོ་འཛུགས |
-| `record.warn.noSystemAudio` | system sound is not available for this source | ཁུངས་འདིར་རྒྱུད་ཁོངས་ཀྱི་སྒྲ་མེད། | C | built from dictionary terms: རྒྱུད་ཁོངས; སྒྲ་མེད; ཁུངས |
+| `record.warn.noSystemAudio` | system sound is not available for this source | ཁུངས་འདིར་རྒྱུད་ཁོངས་ཀྱི་སྒྲ་མེད། | C | built from dictionary terms: རྒྱུད་ཁོངས; སྒྲ་མེད; ཁོངས |
 | `record.warn.failed` | this input could not be used | ནང་འཇུག་འདི་བེད་སྤྱོད་བྱེད་མ་ཐུབ། | C | built from dictionary terms: བེད་སྤྱོད; ནང་འཇུག; སྤྱོད |
 | `insert.text` | Text | ཡི་གེ | D | dictionary: literal, text |
 | `insert.image` | Image | བརྙན་རིས། | D | dictionary: image |
@@ -118,7 +119,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `insert.videoTrack` | Video Track | བརྙན་ཟློས་བང་རིམ། | C | built from dictionary terms: བརྙན་ཟློས; བང་རིམ |
 | `insert.imageTrack` | Image Track | བརྙན་རིས་བང་རིམ། | C | built from dictionary terms: བརྙན་རིས; བང་རིམ; རིས |
 | `insert.annotationTrack` | Annotation Track | མཆན་འགྲེལ་བང་རིམ། | C | built from dictionary terms: མཆན་འགྲེལ; འགྲེལ་བ; བང་རིམ |
-| `effects.zoomRegion` | Zoom Region | ཆེར་གཏོང་ཁུལ་ཁོངས། | C | built from dictionary terms: ཆེར་གཏོང; ཁུལ་ཁོངས; གཏོང |
+| `effects.zoomRegion` | Zoom Region | ཆེར་གཏོང་ཁུལ་ཁོངས། | C | built from dictionary terms: ཁུལ་ཁོངས; ཆེར་གཏོང; ཁོངས |
 | `effects.autoZoom` | Auto Zoom Suggestions | རང་འགུལ་ཆེར་གཏོང་གྲོས་འདེབས། | C | built from dictionary terms: ཆེར་གཏོང; རང་འགུལ; གཏོང |
 | `effects.speedRegion` | Speed Region | མགྱོགས་ཚད་ཁུལ་ཁོངས། | C | built from dictionary terms: མགྱོགས་ཚད; ཁུལ་ཁོངས; ཁོངས |
 | `effects.speedUp` | Speed Up | མགྱོགས་སུ་གཏོང་། | C | built from dictionary terms: གཏོང |
@@ -126,7 +127,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `effects.cursor` | Cursor Effects | འོད་རྟགས་གྲུབ་འབྲས། | C | built from dictionary terms: གྲུབ་འབྲས; འོད་རྟགས; རྟགས |
 | `effects.transitions` | Transitions | མཆོང་འགྱུར། | D | dictionary: transition |
 | `effects.background` | Background | རྒྱབ་རྫོངས། | D | dictionary: background |
-| `effects.webcamBubble` | Webcam Bubble | དྲ་བའི་བརྙན་ཆས་སྒོར་སྒྲོམ། | C | built from dictionary terms: བརྙན་ཆས; དྲ་བ; སྒོ |
+| `effects.webcamBubble` | Webcam Bubble | དྲ་བའི་བརྙན་ཆས་སྒོར་སྒྲོམ། | C | built from dictionary terms: བརྙན་ཆས; དྲ་བ; སྒྲ |
 | `effects.greenScreen` | Green Screen | ལྗང་ཁུའི་བརྙན་ཡོལ། | N | not in dictionary — please review (new syllables: ལྗང ཁུའི) |
 | `effects.removeBackground` | Background Removal | རྒྱབ་རྫོངས་སེལ་བ། | C | built from dictionary terms: རྒྱབ་རྫོངས; སེལ་བ |
 | `effects.layouts` | Layouts | བཀོད་པ། | D | dictionary: layout |
@@ -185,7 +186,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `export.range` | Range | ཁྱབ་ཁོངས། | D | dictionary: range, realm, scope |
 | `export.rangeAll` | Whole timeline | དུས་ཐིག་ཧྲིལ་པོ། | N | not in dictionary — please review (new syllables: ཧྲིལ) |
 | `export.rangeInOut` | In to Out point | འགོ་མཚམས་ནས་མཇུག་མཚམས་བར། | C | built from dictionary terms: མཚམས |
-| `export.burnCaptions` | Show captions in the video | བརྙན་ཟློས་ནང་གསལ་བྱང་མངོན་སྟོན། | C | built from dictionary terms: མངོན་སྟོན; བརྙན་ཟློས; གསལ་བྱང |
+| `export.burnCaptions` | Show captions in the video | བརྙན་ཟློས་ནང་གསལ་བྱང་མངོན་སྟོན། | C | built from dictionary terms: བརྙན་ཟློས; མངོན་སྟོན; གསལ་བྱང |
 | `export.sidecarSrt` | Also save captions as .srt | གསལ་བྱང་ .srt ཡིག་ཆར་ཡང་ཉར་བ། | N | not in dictionary — please review (new syllables: .srtཡིག) |
 | `export.original` | Original size | ཐོག་མའི་ཆེ་ཆུང་། | D | dictionary: original size |
 | `export.trackAudio` | Sound lanes as | སྒྲ་ཟློས་བང་རིམ་གྱི་རྣམ་གཞག | C | built from dictionary terms: སྒྲ་ཟློས; རྣམ་གཞག; བང་རིམ |
@@ -279,7 +280,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `cursor.sway` | Sway | གཡོ་འགུལ། | N | not in dictionary — please review |
 | `cursor.loop` | Loop | རེས་འཁོར། | D | dictionary: loop |
 | `cursor.clickRipple` | Click Ripple | གཅིག་རྡེབ་རླབས་དབྱིབས། | C | built from dictionary terms: རླབས་དབྱིབས; གཅིག་རྡེབ; དབྱིབས |
-| `cursor.osCursorNote` | This recording already shows the system pointer, so the drawn cursor is off. Click rings and zooms still work. | བརྙན་ལེན་འདིར་མ་ལག་གི་འོད་རྟགས་ཡོད་པས་བྲིས་པའི་འོད་རྟགས་བཀག་ཡོད། གཅིག་རྡེབ་རླབས་དང་ཆེར་གཏོང་བཀོལ་ཆོག | C | built from dictionary terms: གཅིག་རྡེབ; ཆེར་གཏོང; འོད་རྟགས |
+| `cursor.osCursorNote` | This recording already shows the system pointer, so the drawn cursor is off. Click rings and zooms still work. | བརྙན་ལེན་འདིར་མ་ལག་གི་འོད་རྟགས་ཡོད་པས་བྲིས་པའི་འོད་རྟགས་བཀག་ཡོད། གཅིག་རྡེབ་རླབས་དང་ཆེར་གཏོང་བཀོལ་ཆོག | C | built from dictionary terms: གཅིག་རྡེབ; འོད་རྟགས; ཆེར་གཏོང |
 | `cursor.style` | Style | བཟོ་ལྟ། | D | dictionary: style |
 | `cursor.clickSound` | Click Sound | གཅིག་རྡེབ་སྒྲ། | C | built from dictionary terms: གཅིག་རྡེབ; སྒྲ |
 | `cursor.styles.arrow` | Arrow | མདའ་རྩེ། | D | dictionary: arrow |
@@ -292,7 +293,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `layout.screenOnly` | Screen Only | བརྙན་ཡོལ་ཁོ་ན། | C | built from dictionary terms: བརྙན་ཡོལ |
 | `layout.webcamOnly` | Webcam Only | དྲ་བའི་བརྙན་ཆས་ཁོ་ན། | C | built from dictionary terms: བརྙན་ཆས; དྲ་བ |
 | `layout.sideBySide` | Side by Side | ཟུར་གཤིབ། | N | not in dictionary — please review |
-| `layout.screenWithBubble` | Screen with Webcam Bubble | བརྙན་ཡོལ་དང་བརྙན་ཆས་སྒོར་སྒྲོམ། | C | built from dictionary terms: བརྙན་ཡོལ; བརྙན་ཆས; སྒོ |
+| `layout.screenWithBubble` | Screen with Webcam Bubble | བརྙན་ཡོལ་དང་བརྙན་ཆས་སྒོར་སྒྲོམ། | C | built from dictionary terms: བརྙན་ཡོལ; བརྙན་ཆས; སྒྲ |
 | `timeline.title` | Timeline | དུས་ཚོད་མདའ། | C | built from dictionary terms: དུས་ཚོད; མདའ |
 | `timeline.playhead` | Playhead | གཏོང་ཚེག | C | built from dictionary terms: གཏོང; ཚེག |
 | `timeline.play` | Play | གཏོང་བ། | D | dictionary: play |
@@ -314,7 +315,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `status.autosaved` | Autosaved | རང་འགུལ་ཉར་ཚར། | C | built from dictionary terms: རང་འགུལ |
 | `status.error` | Error | ནོར་སྐྱོན། | D | dictionary: error |
 | `recovery.title` | Restore Project | ལས་གཞི་སོར་ཆུད། | C | built from dictionary terms: སོར་ཆུད; ལས་གཞི |
-| `recovery.message` | Tibetan Design Recorder closed unexpectedly. Restore the autosaved project? | བོད་ཀྱི་བརྙན་ལེན་རེ་བ་མེད་པར་ཁ་བརྒྱབ་སོང་། རང་འགུལ་ཉར་བའི་ལས་གཞི་སོར་ཆུད་དམ། | N | not in dictionary — please review (new syllables: བོད) |
+| `recovery.message` | Nangchen T. Studio Screen Recorder closed unexpectedly. Restore the autosaved project? | ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས་རེ་བ་མེད་པར་ཁ་བརྒྱབ་སོང་། རང་འགུལ་ཉར་བའི་ལས་གཞི་སོར་ཆུད་དམ། | N | not in dictionary — please review (new syllables: བཀྲིས) |
 | `recovery.restore` | Restore | སོར་ཆུད། | D | dictionary: recovery, restore |
 | `recovery.discard` | Discard | འདོར་བ། | D | dictionary: cancel, discard, stripping |
 | `shortcuts.title` | Keyboard Shortcuts | རྣར་མཐེབ། | D | dictionary: shortcut key |
@@ -327,7 +328,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `shortcuts.playPause` | Play / Pause | གཏོང་བ། / སྐབས་སྡོད། | N | not in dictionary — please review (new syllables: /སྐབས) |
 | `shortcuts.none` | None | མེད། | N | not in dictionary — please review |
 | `zoom.lane` | Camera | བརྙན་ཆས། | D | dictionary: camera |
-| `zoom.region` | Zoom Region | ཆེར་གཏོང་ཁུལ་ཁོངས། | C | built from dictionary terms: ཆེར་གཏོང; ཁུལ་ཁོངས; གཏོང |
+| `zoom.region` | Zoom Region | ཆེར་གཏོང་ཁུལ་ཁོངས། | C | built from dictionary terms: ཁུལ་ཁོངས; ཆེར་གཏོང; ཁོངས |
 | `zoom.accept` | Accept | ཁས་ལེན། | D | dictionary: accept |
 | `zoom.reject` | Reject | ཕྱིར་ཟློག | D | dictionary: rejected |
 | `zoom.acceptAll` | Accept All Suggestions | གྲོས་འཆར་ཆ་ཚང་ཁས་ལེན། | C | built from dictionary terms: གྲོས་འཆར; ཁས་ལེན; ཆ་ཚང |
@@ -337,7 +338,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `zoom.depth` | Zoom | ཆེར་གཏོང་ཚད། | C | built from dictionary terms: ཆེར་གཏོང; གཏོང |
 | `zoom.mode` | Mode | བྱེད་སྟངས། | D | dictionary: ms-dos prompt |
 | `zoom.focus` | Set Focus | མདོ་ཚེག་འཇོག་པ། | C | built from dictionary terms: མདོ་ཚེག; ཚེག |
-| `zoom.focusHint` | Click the preview to set where the zoom points. | ཆེར་གཏོང་གི་མདོ་ཚེག་འཇོག་པར་རྫོན་ལྟའི་ནང་གཅིག་རྡེབ་གནང་། | C | built from dictionary terms: གཅིག་རྡེབ; ཆེར་གཏོང; མདོ་ཚེག |
+| `zoom.focusHint` | Click the preview to set where the zoom points. | ཆེར་གཏོང་གི་མདོ་ཚེག་འཇོག་པར་རྫོན་ལྟའི་ནང་གཅིག་རྡེབ་གནང་། | C | built from dictionary terms: གཅིག་རྡེབ; ཆེར་གཏོང; རྫོན་ལྟ |
 | `zoom.camera` | Camera | བརྙན་ཆས། | D | dictionary: camera |
 | `zoom.zoomIn` | Zoom-in Time | ཆེར་གཏོང་དུས་ཚོད། | C | built from dictionary terms: ཆེར་གཏོང; དུས་ཚོད; གཏོང |
 | `zoom.zoomOut` | Zoom-out Time | ཆུང་དུ་བཏང་དུས་ཚོད། | C | built from dictionary terms: ཆུང་དུ་བཏང; དུས་ཚོད |
@@ -349,7 +350,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `zoom.ease.gentle` | Gentle | དལ་འཇམ། | N | not in dictionary — please review (new syllables: དལ) |
 | `zoom.ease.linear` | Linear | ཐིག་ཕྲེང་། | D | dictionary: ruler line |
 | `zoom.ease.custom` | Custom | རང་སྒྲུབ། | N | not in dictionary — please review (new syllables: སྒྲུབ) |
-| `zoom.status.no-telemetry` | This recording has no cursor data. | བརྙན་ལེན་འདིར་འོད་རྟགས་ཀྱི་གཞི་གྲངས་མེད། | C | built from dictionary terms: འོད་རྟགས; གཞི་གྲངས; རྟགས |
+| `zoom.status.no-telemetry` | This recording has no cursor data. | བརྙན་ལེན་འདིར་འོད་རྟགས་ཀྱི་གཞི་གྲངས་མེད། | C | built from dictionary terms: གཞི་གྲངས; འོད་རྟགས; རྟགས |
 | `zoom.status.no-interactions` | No clicks or typing were found. | གཅིག་རྡེབ་དང་ཡི་གེ་ནང་འཇུག་མ་རྙེད། | C | built from dictionary terms: གཅིག་རྡེབ; ནང་འཇུག; མ་རྙེད |
 | `zoom.status.no-free-slots` | Every click is already covered by a zoom. | གཅིག་རྡེབ་ཆ་ཚང་ཆེར་གཏོང་ནང་ཚུད་ཟིན། | C | built from dictionary terms: གཅིག་རྡེབ; ཆེར་གཏོང; གཏོང |
 | `range.in` | Set In Point | འགོ་མཚམས་འཇོག་པ། | C | built from dictionary terms: མཚམས་འཇོག་པ; མཚམས་འཇོག; མཚམས |
@@ -363,7 +364,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `frame.radial` | Radial | ལྟེ་ནས་འཕྲོ་བ། | N | not in dictionary — please review |
 | `frame.device` | Device Frame | སྒྲིག་ཆས་སྒྲོམ་གཞི། | C | built from dictionary terms: སྒྲོམ་གཞི; སྒྲིག་ཆས; སྒྲ |
 | `ext.title` | Extensions | རྒྱ་སྐྱེད། | D | dictionary: extension |
-| `ext.openFolder` | Open extensions folder | རྒྱ་སྐྱེད་ཡིག་ཁུག་ཁ་འབྱེད། | C | built from dictionary terms: རྒྱ་སྐྱེད; ཁ་འབྱེད; ཡིག་ཁུག |
+| `ext.openFolder` | Open extensions folder | རྒྱ་སྐྱེད་ཡིག་ཁུག་ཁ་འབྱེད། | C | built from dictionary terms: རྒྱ་སྐྱེད; ཡིག་ཁུག; ཁ་འབྱེད |
 | `webcam.custom` | Custom position | རང་སྒྲུབ་གནས་ས། | N | not in dictionary — please review (new syllables: སྒྲུབ) |
 | `webcam.reactToZoom` | Shrink while zoomed in | ཆེར་གཏོང་སྐབས་ཆུང་དུ་གཏོང་བ། | C | built from dictionary terms: ཆེར་གཏོང; གཏོང་བ; གཏོང |
 | `wallpaper.lhasaDusk` | Lhasa Dusk | ལྷ་སའི་ཕྱི་དྲོ། | N | not in dictionary — please review (new syllables: ལྷ དྲོ) |
@@ -447,7 +448,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `anim.rise` | Rise | སྟེང་དུ་འཕར་བ། | C | built from dictionary terms: སྟེང |
 | `anim.pop` | Pop | བཀྲག་འཕར། | N | not in dictionary — please review (new syllables: བཀྲག) |
 | `anim.wipe` | Wipe | ཕྱིས་ནས་མངོན་པ། | N | not in dictionary — please review |
-| `chroma.key` | Key Colour | སེལ་བྱའི་ཁ་དོག | C | built from dictionary terms: སེལ་བ; ཁ་དོག |
+| `chroma.key` | Key Colour | སེལ་བྱའི་ཁ་དོག | C | built from dictionary terms: ཁ་དོག; སེལ་བ |
 | `chroma.similarity` | Similarity | འདྲ་ཚད། | N | not in dictionary — please review |
 | `chroma.smoothness` | Smoothness | འཇམ་ཚད། | N | not in dictionary — please review |
 | `chroma.spill` | Spill Removal | ཁ་དོག་འཛག་པ་སེལ་བ། | N | not in dictionary — please review (new syllables: འཛག) |
@@ -506,7 +507,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `library.musicNote` | Original loops made for this app: free to use in your videos. | མཉེན་ཆས་འདི་ཆེད་དུ་བཟོས་པའི་རོལ་དབྱངས། ཁྱེད་ཀྱི་བརྙན་ཟློས་ནང་རིན་མེད་སྤྱོད་ཆོག | N | not in dictionary — please review (new syllables: དབྱངས ཁྱེད རིན) |
 | `library.add` | Add | སྣོན་པ། | N | not in dictionary — please review |
 | `library.mine` | My Library | ངའི་མཛོད། | C | built from dictionary terms: མཛོད |
-| `library.saveSelection` | Save selection to library | གདམ་ཁོངས་མཛོད་དུ་ཉར་བ། | C | built from dictionary terms: གདམ་ཁོངས; མཛོད; ཉར་བ |
+| `library.saveSelection` | Save selection to library | གདམ་ཁོངས་མཛོད་དུ་ཉར་བ། | C | built from dictionary terms: གདམ་ཁོངས; ཁོངས; མཛོད |
 | `library.mineEmpty` | Select titles or callouts on the timeline and save them here to reuse them in any project. | དུས་ཐིག་སྟེང་ཁ་བྱང་ངམ་མཆན་སྒྲོམ་འདེམས་ནས་འདིར་ཉར་ན་ལས་གཞི་གང་རུང་ནང་ཡང་བསྐྱར་སྤྱོད་ཆོག | N | not in dictionary — please review (new syllables: ངམ རུང) |
 | `music.calmPad` | Calm Pad | ཞི་འཇམ། | N | not in dictionary — please review |
 | `music.mountainPluck` | Mountain Strings | རི་བོའི་རྒྱུད་སྒྲ། | N | not in dictionary — please review (new syllables: བོའི) |
@@ -519,7 +520,7 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `jobs.failed` | Failed | མ་གྲུབ། | D | dictionary: failed |
 | `jobs.cancelled` | Cancelled | འདོར་ཚར། | D | dictionary: cancelled |
 | `jobs.empty` | No jobs yet. | ད་དུང་ལས་འགན་མེད། | C | built from dictionary terms: ལས་འགན |
-| `jobs.clear` | Clear finished | གྲུབ་ཟིན་པ་སུབ་པ། | C | built from dictionary terms: སུབ་པ; ཟིན་པ |
+| `jobs.clear` | Clear finished | གྲུབ་ཟིན་པ་སུབ་པ། | C | built from dictionary terms: ཟིན་པ; སུབ་པ |
 | `jobs.note` | Jobs run one at a time in the background; you can keep editing. | ལས་འགན་རྣམས་རྒྱབ་རྫོངས་སུ་རེ་རེ་བཞིན་འཁོར། ཁྱེད་ཀྱིས་རྩོམ་སྒྲིག་མུ་མཐུད་ཆོག | N | not in dictionary — please review (new syllables: ཁྱེད ཀྱིས) |
 | `jobs.error.no-key` | Add an API key for the speech service first (Captions ▸ Service). | ཐོག་མར་སྐད་གདངས་ཞབས་ཞུའི་ API གསང་ལྡེ་སྣོན་རོགས། | C | built from dictionary terms: སྐད་གདངས; གསང་ལྡེ; ཞབས་ཞུ |
 | `jobs.error.too-large` | The audio file is larger than the service accepts (25 MB). Split the clip, or wait for the Stage 6 converter. | སྒྲ་ཟློས་ཡིག་ཆ་ཞབས་ཞུས་ལེན་ཐུབ་པ་ལས་ཆེ། (25 MB) | N | not in dictionary — please review (new syllables: ཞུས) |
@@ -536,6 +537,68 @@ Regenerate this page with `python scripts/i18n/tibetan_terms.py report`.
 | `anchor.bottom-left` | Bottom left | གཡོན་སྨད། | D | dictionary: lower left |
 | `anchor.bottom` | Bottom | ཞབས། | D | dictionary: bottom |
 | `anchor.bottom-right` | Bottom right | གཡས་འོག | D | dictionary: lower right |
-| `dialog.media` | Video, audio and images | བརྙན་ཟློས་དང་སྒྲ་ཟློས། བརྙན་རིས། | C | built from dictionary terms: བརྙན་ཟློས; བརྙན་རིས; སྒྲ་ཟློས |
+| `dialog.media` | Video, audio and images | བརྙན་ཟློས་དང་སྒྲ་ཟློས། བརྙན་རིས། | C | built from dictionary terms: བརྙན་ཟློས; སྒྲ་ཟློས; བརྙན་རིས |
 | `dialog.images` | Images | བརྙན་རིས། | D | dictionary: image |
 | `dialog.subtitles` | Subtitles | ཡི་གེའི་གསལ་བྱང་། | C | built from dictionary terms: གསལ་བྱང; ཡི་གེ |
+| `webcamStyle.title` | Bubble Style | སྒོར་སྒྲོམ་གྱི་བཟོ་ལྟ། | C | built from dictionary terms: བཟོ་ལྟ; བཟོ; སྒྲ |
+| `webcamStyle.shape` | Shape | དབྱིབས། | D | dictionary: shape |
+| `webcamStyle.aspect` | Proportions | ཆ་ཚད། | D | dictionary: dimensions |
+| `webcamStyle.border` | Border | མཐའ་སྒྲོམ། | D | dictionary: borders, bounding box |
+| `webcamStyle.color2` | Second Colour | ཚོན་མདོག་གཉིས་པ། | N | not in dictionary — please review |
+| `webcamShape.circle` | Circle | ཟླུམ་པོ། | N | not in dictionary — please review (new syllables: ཟླུམ) |
+| `webcamShape.rounded` | Rounded | ཟུར་ཟླུམ། | N | not in dictionary — please review (new syllables: ཟླུམ) |
+| `webcamShape.squircle` | Squircle | གྲུ་བཞི་ཟླུམ་པོ། | N | not in dictionary — please review (new syllables: ཟླུམ) |
+| `webcamShape.square` | Square | གྲུ་བཞི། | D | dictionary: rectangle |
+| `webcamShape.hexagon` | Hexagon | ཟུར་དྲུག | N | not in dictionary — please review (new syllables: དྲུག) |
+| `webcamShape.diamond` | Diamond | ནོར་བུའི་དབྱིབས། | C | built from dictionary terms: དབྱིབས; ནོར་བ |
+| `webcamShape.heart` | Heart | སྙིང་དབྱིབས། | C | built from dictionary terms: དབྱིབས |
+| `border.none` | None | མེད། | N | not in dictionary — please review |
+| `border.solid` | Solid | ཐིག་གཅིག | N | not in dictionary — please review |
+| `border.double` | Double | ཐིག་ཟུང་། | N | not in dictionary — please review |
+| `border.gradient` | Gradient | རིམ་འགྱུར། | N | not in dictionary — please review |
+| `border.glow` | Glow | འོད་འཕྲོ། | N | not in dictionary — please review |
+| `border.neon` | Neon | ནེ་ཡོན་འོད། | N | not in dictionary — please review (new syllables: ནེ) |
+| `border.dashed` | Dashed | ཐིག་ཆད། | N | not in dictionary — please review |
+| `border.ring` | Ring | འཁོར་ཡུག | C | built from dictionary terms: ཁོར་ཡུག |
+| `border.rainbow` | Rainbow | འཇའ་ཚོན། | N | not in dictionary — please review (new syllables: འཇའ) |
+| `webcamLook.title` | Filters | བརྙན་ཚགས། | N | not in dictionary — please review |
+| `webcamLook.beauty` | Beauty | མཛེས་བཟོ། | N | not in dictionary — please review (new syllables: མཛེས) |
+| `webcamLook.looks` | Looks | བཟོ་ལྟ། | D | dictionary: style |
+| `webcamLook.adjust` | Adjust | སྙོམ་སྒྲིག | C | built from dictionary terms: སྒྲ |
+| `webcamLook.smooth` | Skin Smoothing | པགས་པ་འཇམ་པོ། | N | not in dictionary — please review (new syllables: པགས) |
+| `webcamLook.brighten` | Brighten Face | གདོང་གསལ་བ། | N | not in dictionary — please review |
+| `webcamLook.sharpen` | Sharpen | རྣོ་གསལ། | N | not in dictionary — please review (new syllables: རྣོ) |
+| `webcamLook.brightness` | Brightness | གསལ་ཚད། | D | dictionary: brightness, decrease brightness |
+| `webcamLook.contrast` | Contrast | བསྡུར་ཚད། | C | built from dictionary terms: སྡུར་ཚད |
+| `webcamLook.saturation` | Saturation | ཚོན་ཚད། | N | not in dictionary — please review |
+| `webcamLook.temperature` | Warmth | དྲོད་ཚད། | N | not in dictionary — please review (new syllables: དྲོད) |
+| `webcamLook.tint` | Tint | ཚོན་ཁ། | N | not in dictionary — please review |
+| `webcamLook.fade` | Matte | ཡལ་བ། | N | not in dictionary — please review |
+| `webcamLook.vignette` | Vignette | མཐའ་ནག | N | not in dictionary — please review |
+| `webcamLook.preset` | Filter Look | བརྙན་ཚགས་བཟོ་ལྟ། | C | built from dictionary terms: བཟོ་ལྟ; བཟོ |
+| `webcamLook.reset` | Reset Filters | བརྙན་ཚགས་སླར་སྒྲིག | C | built from dictionary terms: སྒྲ |
+| `look.none` | None | མེད། | N | not in dictionary — please review |
+| `look.natural` | Natural | རང་བཞིན། | N | not in dictionary — please review |
+| `look.warm` | Warm | དྲོད་ལྡན། | N | not in dictionary — please review (new syllables: དྲོད) |
+| `look.cool` | Cool | གྲང་བ། | N | not in dictionary — please review |
+| `look.vivid` | Vivid | ཚོན་མདངས། | D | dictionary: hue |
+| `look.soft` | Soft | འཇམ་པོ། | N | not in dictionary — please review |
+| `look.film` | Film | གློག་བརྙན། | N | not in dictionary — please review |
+| `look.vintage` | Vintage | རྙིང་པ། | C | built from dictionary terms: རྙི |
+| `look.fade` | Faded | ཡལ་བ། | N | not in dictionary — please review |
+| `look.bw` | Black & White | དཀར་ནག | D | dictionary: black & white |
+| `look.sepia` | Sepia | སྨུག་སེར། | N | not in dictionary — please review (new syllables: སྨུག) |
+| `look.dramatic` | Dramatic | ཤུགས་ཆེན། | N | not in dictionary — please review |
+| `look.rose` | Rose | ཚོན་དམར་སྐྱ། | C | built from dictionary terms: དམར་སྐྱ |
+| `look.tealOrange` | Teal & Orange | ལྗང་སྔོ་དང་ལི་ཁྲི། | N | not in dictionary — please review (new syllables: ལྗང སྔོ ལི ཁྲི) |
+| `look.golden` | Golden Hour | གསེར་འོད། | N | not in dictionary — please review (new syllables: གསེར) |
+| `font.label` | Font | ཡིག་གཟུགས། | D | dictionary: font |
+| `font.default` | Default | སྔོན་སྒྲིག | N | not in dictionary — please review (new syllables: སྔོན) |
+| `font.builtIn` | Built-in | ནང་འདུས། | N | not in dictionary — please review |
+| `font.tibetan` | Tibetan Fonts | བོད་ཡིག་ཡིག་གཟུགས། | N | not in dictionary — please review (new syllables: བོད) |
+| `font.computer` | On This Computer | གློག་ཀླད་འདིའི་ནང་། | N | not in dictionary — please review (new syllables: འདིའི) |
+| `font.loadComputer` | Use Fonts From This Computer | གློག་ཀླད་འདིའི་ཡིག་གཟུགས་བེད་སྤྱོད། | N | not in dictionary — please review (new syllables: འདིའི) |
+| `font.loading` | Loading fonts… | ཡིག་གཟུགས་འཇུག་བཞིན་པ།… | C | built from dictionary terms: ཡིག་གཟུགས |
+| `font.denied` | Couldn't read this computer's fonts. The built-in fonts still work. | གློག་ཀླད་འདིའི་ཡིག་གཟུགས་ཀློག་མ་ཐུབ། ནང་འདུས་ཡིག་གཟུགས་ད་དུང་བེད་སྤྱོད་ཆོག | N | not in dictionary — please review (new syllables: འདིའི) |
+| `inline.edit` | Edit text (Enter saves, Shift+Enter new line, Esc cancels) | ཡི་གེ་བཟོ་བཅོས། (Enter ཉར་ཚགས། Shift+Enter ཐིག་ཕྲེང་གསར་པ། Esc འདོར།) | N | not in dictionary — please review (new syllables: )) |
+| `inline.hint` | Double-click text on the preview to edit it | བརྙན་ལྟ་སྔོན་མའི་ཡི་གེར་ལན་གཉིས་མནན་ནས་བཟོ་བཅོས་གཏོང་། | N | not in dictionary — please review (new syllables: སྔོན གེར མནན) |

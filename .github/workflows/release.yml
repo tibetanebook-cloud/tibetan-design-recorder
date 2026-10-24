@@ -89,7 +89,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: Tibetan Design Recorder ${{ github.ref_name }}
+          name: Nangchen T. Studio Screen Recorder ${{ github.ref_name }}
           body: |
             Installers for Windows, macOS and Linux. See INSTALL notes in the repository (docs/INSTALL.md):
             these builds are not code-signed yet, so Windows and macOS ask you to confirm the first start.

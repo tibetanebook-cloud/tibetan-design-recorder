@@ -113,7 +113,7 @@ manifest = {
     "name": "Tibetan Basics",
     "names": {"bo": "བོད་ཀྱི་གཞི་རྩ།"},
     "version": "1.0.0",
-    "author": "Tibetan Design",
+    "author": "Nangchen T. Studio",
     "description": "Sample extension: a mandala wallpaper, laptop and browser frames, and a soft click sound.",
     "contributes": {
         "wallpapers": [{"id": "mandala", "name": "Mandala", "names": {"bo": "དཀྱིལ་འཁོར།"}, "file": "wallpapers/mandala.png"}],

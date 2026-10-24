@@ -10,6 +10,8 @@ import type { CaptureSource, DisplayInfo, RecorderStatus, RecordingSettings, Tak
 
 const api = {
   platform: process.platform,
+  /** True only in automated test runs (the main process passes this flag). */
+  testMode: process.argv.includes("--tdr-test-hooks"),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke(IPC.settingsGet),
   setLanguage: (language: Language): Promise<void> => ipcRenderer.invoke(IPC.settingsSetLanguage, language),
   setShortcuts: (shortcuts: Record<string, string | null>): Promise<Settings> => ipcRenderer.invoke(IPC.settingsSetShortcuts, shortcuts),

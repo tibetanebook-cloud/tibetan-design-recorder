@@ -31,7 +31,7 @@ export function createDemoProject(): Project {
     {
       id: newId("clp"),
       trackId: titles.id,
-      content: { type: "text", ...TEXT_DEFAULTS, text: "བོད་ཀྱི་བརྙན་ལེན།", fontSize: 120, color: "#e8c56a", lang: "bo" },
+      content: { type: "text", ...TEXT_DEFAULTS, text: "ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།", fontSize: 120, color: "#e8c56a", lang: "bo" },
       startMs: 0,
       durationMs: 10_000,
       sourceInMs: 0,
@@ -48,7 +48,7 @@ export function createDemoProject(): Project {
     {
       id: newId("clp"),
       trackId: subtitle.id,
-      content: { type: "text", ...TEXT_DEFAULTS, text: "Tibetan Design Recorder", fontSize: 64, color: "#f4ead2", lang: "en" },
+      content: { type: "text", ...TEXT_DEFAULTS, text: "Nangchen T. Studio Screen Recorder", fontSize: 64, color: "#f4ead2", lang: "en" },
       startMs: 0,
       durationMs: 10_000,
       sourceInMs: 0,

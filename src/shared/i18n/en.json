@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Tibetan Design Recorder",
+    "name": "Nangchen T. Studio Screen Recorder",
     "tagline": "Record and edit teaching videos",
     "version": "Version"
   },
@@ -44,7 +44,8 @@
     "shortcuts": "Keyboard Shortcuts…",
     "move": "Move",
     "trim": "Trim",
-    "props": "Change Properties"
+    "props": "Change Properties",
+    "text": "Edit Text"
   },
   "view": {
     "recorder": "Recorder",
@@ -347,7 +348,7 @@
   },
   "recovery": {
     "title": "Restore Project",
-    "message": "Tibetan Design Recorder closed unexpectedly. Restore the autosaved project?",
+    "message": "Nangchen T. Studio Screen Recorder closed unexpectedly. Restore the autosaved project?",
     "restore": "Restore",
     "discard": "Discard"
   },
@@ -632,5 +633,81 @@
     "media": "Video, audio and images",
     "images": "Images",
     "subtitles": "Subtitles"
+  },
+  "webcamStyle": {
+    "title": "Bubble Style",
+    "shape": "Shape",
+    "aspect": "Proportions",
+    "border": "Border",
+    "color2": "Second Colour"
+  },
+  "webcamShape": {
+    "circle": "Circle",
+    "rounded": "Rounded",
+    "squircle": "Squircle",
+    "square": "Square",
+    "hexagon": "Hexagon",
+    "diamond": "Diamond",
+    "heart": "Heart"
+  },
+  "border": {
+    "none": "None",
+    "solid": "Solid",
+    "double": "Double",
+    "gradient": "Gradient",
+    "glow": "Glow",
+    "neon": "Neon",
+    "dashed": "Dashed",
+    "ring": "Ring",
+    "rainbow": "Rainbow"
+  },
+  "webcamLook": {
+    "title": "Filters",
+    "beauty": "Beauty",
+    "looks": "Looks",
+    "adjust": "Adjust",
+    "smooth": "Skin Smoothing",
+    "brighten": "Brighten Face",
+    "sharpen": "Sharpen",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "saturation": "Saturation",
+    "temperature": "Warmth",
+    "tint": "Tint",
+    "fade": "Matte",
+    "vignette": "Vignette",
+    "preset": "Filter Look",
+    "reset": "Reset Filters"
+  },
+  "look": {
+    "none": "None",
+    "natural": "Natural",
+    "warm": "Warm",
+    "cool": "Cool",
+    "vivid": "Vivid",
+    "soft": "Soft",
+    "film": "Film",
+    "vintage": "Vintage",
+    "fade": "Faded",
+    "bw": "Black & White",
+    "sepia": "Sepia",
+    "dramatic": "Dramatic",
+    "rose": "Rose",
+    "tealOrange": "Teal & Orange",
+    "golden": "Golden Hour"
+  },
+  "font": {
+    "label": "Font",
+    "default": "Default",
+    "builtIn": "Built-in",
+    "tibetan": "Tibetan Fonts",
+    "computer": "On This Computer",
+    "loadComputer": "Use Fonts From This Computer",
+    "loading": "Loading fonts…",
+    "denied": "Couldn't read this computer's fonts. The built-in fonts still work."
+  },
+  "inline": {
+    "edit": "Edit text (Enter saves, Shift+Enter new line, Esc cancels)",
+    "hint": "Double-click text on the preview to edit it"
   }
 }

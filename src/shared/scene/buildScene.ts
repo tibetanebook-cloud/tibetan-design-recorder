@@ -7,7 +7,8 @@
  * zoom, cursor, click rings, webcam layouts, device frames) is decided here, never
  * in the drawing code.
  */
-import type { Background, CaptionStyle, Clip, ClipContent, Crop, CursorStyle, Project, Rect, Track, WebcamLayout } from "../project/schema";
+import type { Background, CaptionStyle, Clip, ClipContent, Crop, CursorStyle, Project, Rect, Track, WebcamBorder, WebcamLayout, WebcamLook } from "../project/schema";
+import { bubbleSize, type WebcamShape } from "../effects/webcamStyle";
 import { dissolvePartner, NO_TRANSITION, textAnimationAt, transitionAt, type TextAnimState, type TransitionState } from "../effects/transitions";
 import { layoutAt, mixRect } from "../effects/layouts";
 import { captionClips, quizAt, stepNumbers } from "../teaching";
@@ -46,9 +47,12 @@ export interface SceneLayer {
   stepNumber?: number;
   /** Green-screen key for webcam layers. */
   chroma?: WebcamLayout["chroma"];
+  /** Webcam shape, border and look (beauty + colour). `shaped` = cut to the shape (bubble, side by side). */
+  webcam?: { shaped: boolean; shape: WebcamShape; roundness: number; border: WebcamBorder; look: WebcamLook };
 }
 
 export interface SceneCaption {
+  clipId: string;
   text: string;
   lang: string;
   style: CaptionStyle;
@@ -151,18 +155,23 @@ export function bubbleFrame(project: Project, cameraScale = 1): Rect {
   if (w.reactToZoom && cameraScale > 1) size /= cameraScale;
   size = Math.round(Math.min(min - 2 * w.marginPx, Math.max(56, size)));
   const m = w.marginPx;
+  // Proportions (1:1, 16:9, 3:4…) keep the bubble's area; never larger than the canvas.
+  let { width: bw, height: bh } = bubbleSize(size, w.aspect);
+  const fit = Math.min(1, (W - 2 * m) / bw, (H - 2 * m) / bh);
+  bw = Math.round(bw * fit);
+  bh = Math.round(bh * fit);
   let cx: number, cy: number;
   if (w.anchor === "custom") {
     cx = w.x * W;
     cy = w.y * H;
   } else {
     const [v, h] = w.anchor === "center" ? ["center", "center"] : w.anchor.includes("-") ? w.anchor.split("-") : ["top", "bottom"].includes(w.anchor) ? [w.anchor, "center"] : ["center", w.anchor];
-    cx = h === "left" ? m + size / 2 : h === "right" ? W - m - size / 2 : W / 2;
-    cy = v === "top" ? m + size / 2 : v === "bottom" ? H - m - size / 2 : H / 2;
+    cx = h === "left" ? m + bw / 2 : h === "right" ? W - m - bw / 2 : W / 2;
+    cy = v === "top" ? m + bh / 2 : v === "bottom" ? H - m - bh / 2 : H / 2;
   }
-  const x = Math.min(W - m - size, Math.max(m, cx - size / 2));
-  const y = Math.min(H - m - size, Math.max(m, cy - size / 2));
-  return { x: Math.round(x), y: Math.round(y), width: size, height: size };
+  const x = Math.min(W - m - bw, Math.max(m, cx - bw / 2));
+  const y = Math.min(H - m - bh, Math.max(m, cy - bh / 2));
+  return { x: Math.round(x), y: Math.round(y), width: bw, height: bh };
 }
 
 /** Kept for earlier callers: the bubble at rest. */
@@ -331,6 +340,7 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
         textAnim: c.type === "text" || c.type === "callout" ? textAnimationAt(c.text, c.type === "text" ? c.animation : "pop", localMs) : undefined,
         stepNumber: c.type === "step" ? steps.get(clip.id) : undefined,
         chroma: isWebcam && project.webcam.chroma.enabled ? project.webcam.chroma : undefined,
+        webcam: isWebcam ? webcamStyle(project, lay.layout, clip.frame ?? frame) : undefined,
       });
     }
   }
@@ -399,13 +409,23 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
   };
 }
 
+/** Shape/border/look of the webcam for the current layout. */
+function webcamStyle(project: Project, layout: Layout, frame: Rect): SceneLayer["webcam"] {
+  const w = project.webcam;
+  const side = layout === "side";
+  const shaped = layout === "bubble" || side;
+  const shape: WebcamShape = side ? "rounded" : (w.shape ?? (w.roundness >= 100 ? "circle" : "rounded"));
+  const roundness = side ? project.canvas.cornerRadius / Math.max(1, Math.min(frame.width, frame.height)) : w.roundness / 200;
+  return { shaped, shape, roundness, border: shaped ? w.border : { ...w.border, style: "none" }, look: w.look };
+}
+
 function captionAt(project: Project, t: number): SceneCaption | undefined {
   const lanes = new Map(project.tracks.filter((tr) => tr.kind === "caption").map((tr) => [tr.id, tr]));
   const clip = captionClips(project).find((c) => !c.hidden && !lanes.get(c.trackId)?.hidden && isClipActive(c, t));
   if (!clip || clip.content.type !== "caption") return undefined;
   const style = project.captionStyle;
   const anim = textAnimationAt(clip.content.text, style.animation, t - clip.startMs);
-  return { text: clip.content.text, lang: clip.content.lang, style, alpha: anim.alpha * fadeAt(clip, t), dy: anim.dy, scale: anim.scale };
+  return { clipId: clip.id, text: clip.content.text, lang: clip.content.lang, style, alpha: anim.alpha * fadeAt(clip, t), dy: anim.dy, scale: anim.scale };
 }
 
 function sceneQuiz(project: Project, t: number): SceneQuiz | undefined {

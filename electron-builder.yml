@@ -1,9 +1,9 @@
 # Installers for Windows, macOS and Linux.
-# Owner decisions (2026-10-22): app id org.tibetandesign.recorder, publisher "Tibetan Design",
+# Owner decisions: app id org.tibetandesign.recorder (kept so v0.1.0 updates in place), publisher "Nangchen T. Studio",
 # unsigned for now (see docs/INSTALL.md for what users see), macOS/Linux built by GitHub Actions.
 appId: org.tibetandesign.recorder
-productName: Tibetan Design Recorder
-copyright: Copyright © 2026 Tibetan Design
+productName: Nangchen T. Studio Screen Recorder
+copyright: Copyright © 2026 Nangchen T. Studio
 directories:
   output: dist
   buildResources: build
@@ -25,10 +25,20 @@ npmRebuild: false
 electronLanguages: [en-US]
 # Nothing is uploaded anywhere by a local build.
 publish: null
+# Hardened Electron binary: it can't be run as plain Node.js, ignores NODE_OPTIONS and
+# --inspect, and only loads the app from its own integrity-checked archive.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: true  # the app loads its pages over file:// from the asar
 fileAssociations:
   - ext: tdrec
-    name: Tibetan Design Recorder Project
-    description: Tibetan Design Recorder project
+    name: Nangchen T. Studio Screen Recorder Project
+    description: Nangchen T. Studio Screen Recorder project
     role: Editor
     # No extension: Windows uses build/icon.ico, macOS build/icon.icns.
     icon: build/icon
@@ -52,16 +62,16 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: Tibetan Design Recorder
+  shortcutName: Nangchen T. Studio Screen Recorder
   # Projects and recordings are the user's: never delete them on uninstall.
   deleteAppDataOnUninstall: false
   # Removes the .tdrec file type on uninstall (build/installer.nsh).
   include: build/installer.nsh
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
-  artifactName: tibetan-design-recorder-${version}-windows-${arch}-setup.${ext}
+  artifactName: nangchen-t-studio-screen-recorder-${version}-windows-${arch}-setup.${ext}
 portable:
-  artifactName: tibetan-design-recorder-${version}-windows-${arch}-portable.${ext}
+  artifactName: nangchen-t-studio-screen-recorder-${version}-windows-${arch}-portable.${ext}
 
 mac:
   target:
@@ -83,10 +93,10 @@ mac:
     NSMicrophoneUsageDescription: Records your microphone as its own track.
     NSScreenCaptureUsageDescription: Records your screen.
   # Name of the .zip (the dmg sets its own below).
-  artifactName: tibetan-design-recorder-${version}-macos-${arch}.${ext}
+  artifactName: nangchen-t-studio-screen-recorder-${version}-macos-${arch}.${ext}
 dmg:
-  artifactName: tibetan-design-recorder-${version}-macos-${arch}.${ext}
-  title: Tibetan Design Recorder
+  artifactName: nangchen-t-studio-screen-recorder-${version}-macos-${arch}.${ext}
+  title: Nangchen T. Studio Screen Recorder
 
 linux:
   target:
@@ -99,9 +109,9 @@ linux:
   synopsis: Screen recorder and video editor for teaching (Tibetan / English)
   description: Records screen, webcam, microphone and system audio as separate tracks, with a multi-track editor and a Tibetan and English interface.
   maintainer: Tibetan Design
-  executableName: tibetan-design-recorder
+  executableName: nangchen-t-studio-screen-recorder
   mimeTypes: [application/x-tdrec]
-  artifactName: tibetan-design-recorder-${version}-linux-${arch}.${ext}
+  artifactName: nangchen-t-studio-screen-recorder-${version}-linux-${arch}.${ext}
 deb:
   depends: [libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0]
   # PipeWire is used for screen capture on Wayland.

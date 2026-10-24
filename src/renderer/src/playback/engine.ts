@@ -23,7 +23,16 @@ import { isAudible, trackById } from "@shared/timeline/ops";
 import type { Compositor } from "../compositor/Compositor";
 import { FxChain } from "../audio/fxChain";
 
-const DRIFT_S = 0.12;
+/**
+ * Keeping each media element on the master clock without visible hitches:
+ * small drift is ignored, medium drift is caught up by playing up to 8 %
+ * faster/slower, and only large drift (or a jump) seeks. Seeking a webcam
+ * recording is expensive (few keyframes), so a seek every time it drifts by a
+ * few frames used to make the webcam stutter.
+ */
+const DRIFT_IGNORE_S = 0.04;
+const DRIFT_SEEK_S = 0.5;
+const MAX_RATE_NUDGE = 0.08;
 
 interface Slot {
   el: HTMLMediaElement | HTMLImageElement;
@@ -38,11 +47,13 @@ interface Slot {
 export class PlaybackEngine {
   private ctx: AudioContext | null = null;
   private slots = new Map<string, Slot>();
-  private raf = 0;
+  private raf: { frame: number; timer: number } = { frame: 0, timer: 0 };
   /** performance.now() when the clock started. */
   private startPerf = 0;
   private startMs = 0;
   playing = false;
+  /** Playback health (shown by the smoke test): ticks drawn, hard seeks, slowest tick. */
+  readonly stats = { ticks: 0, seeks: 0, nudges: 0, maxTickMs: 0 };
 
   constructor(
     private readonly getProject: () => Project,
@@ -222,18 +233,26 @@ export class PlaybackEngine {
   }
 
   /**
-   * Next frame: requestAnimationFrame when the window is visible; a timer when it
-   * is hidden (Chromium barely runs rAF for hidden windows, which would stall
-   * playback and the hidden export renderer).
+   * Next frame: requestAnimationFrame, with a timer as a backstop whenever frames
+   * stall (hidden, minimized or never-shown windows run rAF rarely or not at all,
+   * which would freeze playback and the hidden export renderer). Whichever fires
+   * first runs the frame.
    */
-  private schedule(fn: () => void): number {
-    if (document.visibilityState === "hidden") return -window.setTimeout(fn, 16);
-    return requestAnimationFrame(fn);
+  private schedule(fn: () => void): { frame: number; timer: number } {
+    const h = { frame: 0, timer: 0 };
+    const run = () => {
+      cancelAnimationFrame(h.frame);
+      window.clearTimeout(h.timer);
+      fn();
+    };
+    if (document.visibilityState !== "hidden") h.frame = requestAnimationFrame(run);
+    h.timer = window.setTimeout(run, document.visibilityState === "hidden" ? 16 : 40);
+    return h;
   }
 
-  private unschedule(id: number): void {
-    if (id < 0) window.clearTimeout(-id);
-    else cancelAnimationFrame(id);
+  private unschedule(h: { frame: number; timer: number }): void {
+    cancelAnimationFrame(h.frame);
+    window.clearTimeout(h.timer);
   }
 
   pause(): void {
@@ -252,6 +271,8 @@ export class PlaybackEngine {
   }
 
   private tick(): void {
+    const t0 = performance.now();
+    this.stats.ticks++;
     const project = this.getProject();
     const end = project.clips.reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0);
     let now = this.timeMs;
@@ -273,18 +294,28 @@ export class PlaybackEngine {
         continue;
       }
       const target = sourceTime(clip, now) / 1000;
-      el.playbackRate = clip.speed;
+      let rate = clip.speed;
       if (el.paused) {
         el.currentTime = target;
         void el.play().catch(() => undefined);
-      } else if (Math.abs(el.currentTime - target) > DRIFT_S) {
-        el.currentTime = target;
+      } else {
+        const drift = target - el.currentTime; // > 0: element is behind the clock
+        if (Math.abs(drift) > DRIFT_SEEK_S) {
+          el.currentTime = target;
+          this.stats.seeks++;
+        } else if (Math.abs(drift) > DRIFT_IGNORE_S) {
+          // Catch up smoothly over about a second.
+          rate = clip.speed * (1 + Math.max(-MAX_RATE_NUDGE, Math.min(MAX_RATE_NUDGE, drift)));
+          this.stats.nudges++;
+        }
       }
+      if (Math.abs(el.playbackRate - rate) > 0.001) el.playbackRate = rate;
       this.applyMix(project, clip, slot, now);
     }
     this.playClickSounds(project, now);
     this.draw(project, now);
     this.onTime(now);
+    this.stats.maxTickMs = Math.max(this.stats.maxTickMs, performance.now() - t0);
   }
 
   // ---------- click sounds (extension) ----------

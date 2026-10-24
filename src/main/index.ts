@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell, type MenuItemConstructorOptions } from "electron";
 import { promises as fs } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { isLanguage, translate, type Language } from "@shared/i18n";
 import { IPC, type MenuCommand, type OpenResult, type SaveResult } from "@shared/ipc";
 import { MENUS } from "@shared/menu";
@@ -13,16 +13,29 @@ import { loadProject, saveProject, SessionRecovery } from "./project-io";
 import { RecordingController } from "./recording/controller";
 import { SettingsStore } from "./settings";
 import { TranscribeService } from "./transcribe";
+import { hardenWebContents, WritePolicy } from "./security";
+import { migrateUserData } from "./migrate";
 import { Library } from "./library";
 import { closeAllExports, exportClose, exportOpen, exportWrite } from "./exportFiles";
 import { runSmokeTest } from "./smoke";
 
 const SMOKE = process.argv.includes("--smoke-test");
 if (SMOKE) app.setPath("userData", join(app.getPath("temp"), `tdrec-smoke-${process.pid}`));
+/** Folder name under Videos for recordings and exports. */
+const PRODUCT_FOLDER = "Nangchen T. Studio Screen Recorder";
+// Renamed in v0.2.0: bring the user's settings, library and extensions along.
+if (!SMOKE) {
+  const moved = migrateUserData(app.getPath("appData"), app.getPath("userData"));
+  if (moved.length) console.log("Moved user data from the old app name:", moved.join(", "));
+}
 
 /** Project to open once the window is ready. */
 let pendingOpen: string | undefined = projectArg(process.argv);
 let rendererIsReady = false;
+hardenWebContents();
+/** Files/folders the renderer may write (chosen by the user in dialogs, or the app's own folders). */
+const writes = new WritePolicy();
+const isProjectPath = (p: unknown): p is string => typeof p === "string" && /\.tdrec$/i.test(p) && isAbsolute(p);
 // One app at a time: a second launch (e.g. double-clicking another project) hands
 // its project to the window that is already open, then exits.
 if (!SMOKE && !app.requestSingleInstanceLock()) app.exit(0);
@@ -100,6 +113,9 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      webSecurity: true,
+      // The automated test's hooks exist only in test runs.
+      additionalArguments: SMOKE ? ["--tdr-test-hooks"] : [],
       // Keep the device meters and webcam preview live while the window is covered.
       backgroundThrottling: false,
     },
@@ -161,7 +177,14 @@ function registerIpc(): void {
     if (path) openInWindow(path);
   });
   ipcMain.handle(IPC.settingsGet, () => settings.get());
-  ipcMain.handle(IPC.settingsSetShortcuts, (_e, shortcuts: Record<string, string | null>) => settings.update({ shortcuts }));
+  ipcMain.handle(IPC.settingsSetShortcuts, (_e, shortcuts: unknown) => {
+    // Only a flat map of action id -> key name (or null); nothing else is stored.
+    if (!shortcuts || typeof shortcuts !== "object" || Array.isArray(shortcuts)) throw new Error("bad shortcuts");
+    const clean: Record<string, string | null> = {};
+    for (const [k, v] of Object.entries(shortcuts as Record<string, unknown>).slice(0, 300))
+      if (/^[a-zA-Z0-9.]{1,64}$/.test(k) && (v === null || (typeof v === "string" && v.length <= 64))) clean[k] = v as string | null;
+    return settings.update({ shortcuts: clean });
+  });
   ipcMain.handle(IPC.mediaImport, async () => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ["openFile", "multiSelections"],
@@ -201,7 +224,8 @@ function registerIpc(): void {
   });
   const library = new Library(join(app.isPackaged ? process.resourcesPath : app.getAppPath(), "resources"), app.getPath("userData"));
   ipcMain.handle(IPC.libraryList, () => library.list());
-  const exportDir = () => join(app.getPath("videos"), "Tibetan Design Recorder", "Exports");
+  const exportDir = () => join(app.getPath("videos"), PRODUCT_FOLDER, "Exports");
+  writes.allowDir(exportDir());
   ipcMain.handle(IPC.exportDefaultDir, async () => {
     await fs.mkdir(exportDir(), { recursive: true });
     return exportDir();
@@ -209,21 +233,31 @@ function registerIpc(): void {
   ipcMain.handle(IPC.exportPickPath, async (_e, defaultName: string, extension: string) => {
     await fs.mkdir(exportDir(), { recursive: true });
     const r = await dialog.showSaveDialog(mainWindow!, { title: tr("export.title"), defaultPath: join(exportDir(), `${defaultName}.${extension}`), filters: [{ name: extension.toUpperCase(), extensions: [extension] }] });
-    return r.canceled || !r.filePath ? null : r.filePath;
+    if (r.canceled || !r.filePath) return null;
+    writes.allowFile(r.filePath);
+    return r.filePath;
   });
   ipcMain.handle(IPC.exportPickFolder, async () => {
     await fs.mkdir(exportDir(), { recursive: true });
     const r = await dialog.showOpenDialog(mainWindow!, { title: tr("export.chooseFolder"), defaultPath: exportDir(), properties: ["openDirectory", "createDirectory"] });
-    return r.canceled ? null : (r.filePaths[0] ?? null);
+    const dir = r.canceled ? null : (r.filePaths[0] ?? null);
+    if (dir) writes.allowDir(dir);
+    return dir;
   });
   ipcMain.handle(IPC.exportPickProjects, async () => {
     const r = await dialog.showOpenDialog(mainWindow!, { title: tr("export.batch"), properties: ["openFile", "multiSelections"], filters: projectFilter() });
     return r.canceled ? [] : r.filePaths;
   });
-  ipcMain.handle(IPC.exportOpen, (_e, path: string) => exportOpen(path));
+  ipcMain.handle(IPC.exportOpen, (_e, path: unknown) => {
+    // Only where the user chose to save (or the app's export folder).
+    if (typeof path !== "string" || !(writes.canWrite(path) || writes.canWriteSidecar(path))) throw new Error("export path not allowed");
+    return exportOpen(path);
+  });
   ipcMain.handle(IPC.exportWrite, (_e, id: number, position: number, data: Uint8Array) => exportWrite(id, position, data));
   ipcMain.handle(IPC.exportClose, (_e, id: number, ok: boolean) => exportClose(id, ok));
-  ipcMain.handle(IPC.exportReveal, (_e, path: string) => shell.showItemInFolder(path));
+  ipcMain.handle(IPC.exportReveal, (_e, path: unknown) => {
+    if (typeof path === "string" && writes.canWrite(path)) shell.showItemInFolder(path);
+  });
   app.on("before-quit", () => void closeAllExports());
   ipcMain.handle(IPC.librarySave, (_e, items: Parameters<Library["saveUser"]>[0]) => library.saveUser(items));
   ipcMain.handle(IPC.transcribeConfig, () => transcriber.config());
@@ -235,6 +269,8 @@ function registerIpc(): void {
   });
 
   const writeTo = async (path: string, json: string): Promise<SaveResult> => {
+    // Projects are only ever written as .tdrec files.
+    if (!isProjectPath(path)) return { ok: false, error: "not a .tdrec path" };
     try {
       await saveProject(path, parseProject(JSON.parse(json)));
       await settings.addRecent(path);
@@ -261,6 +297,7 @@ function registerIpc(): void {
     return target ? writeTo(target, json) : { ok: false };
   });
   const openPath = async (path: string): Promise<OpenResult> => {
+    if (!isProjectPath(path)) return { ok: false, path: String(path), error: "not a .tdrec file" };
     try {
       const { json } = await loadProject(path);
       await settings.addRecent(path);
@@ -302,7 +339,7 @@ void app.whenReady().then(async () => {
 
   registerIpc();
   handleMediaProtocol();
-  recorder = new RecordingController(() => mainWindow, loadPage, PRELOAD, join(app.getPath("videos"), "Tibetan Design Recorder"));
+  recorder = new RecordingController(() => mainWindow, loadPage, PRELOAD, join(app.getPath("videos"), PRODUCT_FOLDER));
   recorder.register((take) => {
     const dir = recorder.lastTakeDir;
     if (dir) mainWindow?.webContents.send(REC.takeFinished, take, dir);
@@ -313,7 +350,7 @@ void app.whenReady().then(async () => {
   mainWindow = createWindow();
 
   if (SMOKE) {
-    const code = await runSmokeTest(mainWindow, { setLanguage, recovery, userData, recorder, openProject: openInWindow });
+    const code = await runSmokeTest(mainWindow, { setLanguage, recovery, userData, recorder, openProject: openInWindow, allowWriteDir: (d) => writes.allowDir(d) });
     app.exit(code);
   }
 

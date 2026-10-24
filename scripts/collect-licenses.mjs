@@ -48,5 +48,5 @@ for (const name of names) {
   rows.push(`${name} ${meta.version} — ${typeof meta.license === "string" ? meta.license : JSON.stringify(meta.license)} (${target})`);
 }
 copyFileSync("docs/THIRD_PARTY.md", join(out, "THIRD_PARTY.md"));
-writeFileSync(join(out, "README.txt"), "Third-party components in Tibetan Design Recorder\n\n" + rows.join("\n") + "\n");
+writeFileSync(join(out, "README.txt"), "Third-party components in Nangchen T. Studio Screen Recorder\n\n" + rows.join("\n") + "\n");
 console.log(`licences: ${rows.length} packages${missing.length ? `; no licence file: ${missing.join(", ")}` : ""}`);

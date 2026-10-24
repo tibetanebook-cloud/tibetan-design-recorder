@@ -2,7 +2,7 @@
  * Recording model. One "take" = one recording session; every input becomes its
  * own raw file inside the take folder and its own lane in the editor:
  *
- *   <Videos>/Tibetan Design Recorder/<take-id>/
+ *   <Videos>/Nangchen T. Studio Screen Recorder/<take-id>/
  *     screen.webm   webcam.webm   mic.webm   system.webm   cursor.json   take.json
  *
  * All times are "recording time" in ms: they start at 0 when recording starts and

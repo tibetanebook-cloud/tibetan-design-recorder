@@ -11,6 +11,7 @@ import { Compositor, TIBETAN_FONT } from "../compositor/Compositor";
 import { PlaybackEngine } from "../playback/engine";
 import { ensureProjectAssets, onAssetsChanged, sceneContext } from "../playback/assets";
 import { useEditor } from "../store";
+import { hitText, InlineTextEditor, type InlineEdit } from "./InlineTextEditor";
 
 /** Shared with the smoke test so it can read rendered pixels. */
 export const previewCompositor: { current: Compositor | null } = { current: null };
@@ -32,6 +33,27 @@ export function Preview() {
   const zoomId = useEditor((s) => s.selectedZoomId);
   const [ready, setReady] = useState(false);
   const [assetTick, setAssetTick] = useState(0);
+  const [inline, setInline] = useState<InlineEdit | null>(null);
+
+  /** Double-click any text, callout, title or caption to edit it in place. */
+  const onDoubleClick = async (e: ReactMouseEvent<HTMLDivElement>) => {
+    const comp = previewCompositor.current;
+    const box = host.current?.getBoundingClientRect();
+    if (!comp || !box || (e.target as HTMLElement).closest("[data-inline-editor]")) return;
+    const st = useEditor.getState();
+    const p = st.history.present;
+    const x = ((e.clientX - box.left) / box.width) * p.canvas.width;
+    const y = ((e.clientY - box.top) / box.height) * p.canvas.height;
+    if (st.playing) {
+      st.setPlaying(false);
+      await playback.current?.requestFrame(useEditor.getState().playheadMs);
+    }
+    const hit = hitText(p, comp.textBoxes, useEditor.getState().playheadMs, x, y);
+    if (!hit) return;
+    e.preventDefault();
+    st.select([hit.box.clipId]);
+    setInline(hit);
+  };
 
   useEffect(() => {
     const compositor = new Compositor();
@@ -51,6 +73,7 @@ export function Preview() {
       const p = useEditor.getState().history.present;
       await compositor.init(p.canvas.width, p.canvas.height, canvas);
       if (cancelled) return compositor.destroy();
+      compositor.onlyNewVideoFrames = true;
       initialized = true;
       host.current?.appendChild(canvas);
       previewCompositor.current = compositor;
@@ -58,9 +81,22 @@ export function Preview() {
       setReady(true);
     })();
     const offAssets = onAssetsChanged(() => setAssetTick((n) => n + 1));
+    // Draw at the size the preview is shown (device pixels), not always full 1080p/4K:
+    // much less GPU work while playing; exports still render at full size.
+    const resize = new ResizeObserver(() => {
+      const box = host.current;
+      if (!box) return;
+      const k = Math.min(1, Math.max(0.25, Math.ceil(((box.clientWidth * window.devicePixelRatio) / useEditor.getState().history.present.canvas.width) * 20) / 20));
+      if (Math.abs(compositor.scale - k) > 0.001) {
+        compositor.scale = k;
+        setAssetTick((n) => n + 1);
+      }
+    });
+    if (host.current) resize.observe(host.current);
     return () => {
       cancelled = true;
       offAssets();
+      resize.disconnect();
       engine.dispose();
       if (initialized) compositor.destroy();
       previewCompositor.current = null;
@@ -86,9 +122,10 @@ export function Preview() {
 
   return (
     <div className="preview-stage">
-      <div className="preview-canvas" ref={host} style={{ aspectRatio: `${project.canvas.width} / ${project.canvas.height}` }}>
+      <div className="preview-canvas" ref={host} style={{ aspectRatio: `${project.canvas.width} / ${project.canvas.height}` }} onDoubleClick={(e) => void onDoubleClick(e)} data-preview-host>
         {zoomId && !playing && <ZoomFocusOverlay project={project} zoomId={zoomId} />}
-        {!zoomId && !playing && <FrameOverlay project={project} />}
+        {!zoomId && !playing && !inline && <FrameOverlay project={project} />}
+        {inline && !playing && <InlineTextEditor edit={inline} project={project} onDone={() => setInline(null)} />}
       </div>
       <LayoutBar project={project} playheadMs={playheadMs} />
     </div>

@@ -5,6 +5,7 @@
  * Times are milliseconds (floats allowed); geometry is in canvas pixels.
  */
 import { z } from "zod";
+import { BORDER_STYLES, BUBBLE_ASPECTS, LOOK_PRESETS, WEBCAM_SHAPES } from "../effects/webcamStyle";
 
 export const PROJECT_FORMAT = "tdrec";
 export const PROJECT_VERSION = 1;
@@ -131,6 +132,8 @@ export const ClipContent = z.discriminatedUnion("type", [
     /** BCP-47 tag; "bo" selects Noto Serif Tibetan and Tibetan line rules. */
     lang: z.string().default("en"),
     bold: z.boolean().default(false),
+    /** Font family (installed or built in); unset = Noto Serif Tibetan / system UI font. Tibetan always falls back to Noto Serif Tibetan. */
+    fontFamily: z.string().max(200).optional(),
     align: z.enum(["left", "center", "right"]).default("center"),
     /** Optional box behind the text. */
     background: z.string().optional(),
@@ -147,6 +150,8 @@ export const ClipContent = z.discriminatedUnion("type", [
     color: z.string().default("#1b2350"),
     border: z.string().default("#d4a94a"),
     fontSize: z.number().positive().default(44),
+    /** Font family (installed or built in); unset = Noto Serif Tibetan / system UI font. Tibetan always falls back to Noto Serif Tibetan. */
+    fontFamily: z.string().max(200).optional(),
     tailX: z.number().optional(),
     tailY: z.number().optional(),
   }),
@@ -183,6 +188,8 @@ export const ClipContent = z.discriminatedUnion("type", [
     accent: z.string().default("#d4a94a"),
     color: z.string().default("#ffffff"),
     background: z.string().default("#14151c"),
+    /** Font family (installed or built in); unset = Noto Serif Tibetan / system UI font. Tibetan always falls back to Noto Serif Tibetan. */
+    fontFamily: z.string().max(200).optional(),
   }),
   /** One caption cue (on a caption lane). */
   z.object({ type: z.literal("caption"), text: z.string(), lang: z.string().default("en") }),
@@ -382,8 +389,42 @@ export const WebcamLayout = z.object({
     .default({ enabled: false, color: "#00ff00", similarity: 0.4, smoothness: 0.08, spill: 0.3 }),
   /** Remove the background without a green screen (person segmentation model). */
   removeBackground: z.boolean().default(false),
+  /** Bubble shape; unset = from roundness (100 = circle, else rounded square), as in v0.1. */
+  shape: z.enum(WEBCAM_SHAPES).optional(),
+  /** Bubble proportions (same area as the square bubble). */
+  aspect: z.enum(BUBBLE_ASPECTS).default("1:1"),
+  border: z
+    .object({
+      style: z.enum(BORDER_STYLES).default("none"),
+      /** Width in pixels at 1080p. */
+      width: z.number().min(0).max(40).default(6),
+      color: z.string().default("#d4a94a"),
+      /** Second colour (gradient, double, neon glow). */
+      color2: z.string().default("#9b1b30"),
+    })
+    .default({ style: "none", width: 6, color: "#d4a94a", color2: "#9b1b30" }),
+  /** Beauty filters and colour look. */
+  look: z
+    .object({
+      preset: z.enum(LOOK_PRESETS).default("none"),
+      /** Skin smoothing (edges, eyes and hair stay sharp). */
+      smooth: z.number().min(0).max(1).default(0),
+      /** Brighten faces (skin tones only). */
+      brighten: z.number().min(0).max(1).default(0),
+      sharpen: z.number().min(0).max(1).default(0),
+      brightness: z.number().min(-1).max(1).default(0),
+      contrast: z.number().min(-1).max(1).default(0),
+      saturation: z.number().min(-1).max(1).default(0),
+      temperature: z.number().min(-1).max(1).default(0),
+      tint: z.number().min(-1).max(1).default(0),
+      fade: z.number().min(0).max(1).default(0),
+      vignette: z.number().min(0).max(1).default(0),
+    })
+    .default({ preset: "none", smooth: 0, brighten: 0, sharpen: 0, brightness: 0, contrast: 0, saturation: 0, temperature: 0, tint: 0, fade: 0, vignette: 0 }),
 });
 export type WebcamLayout = z.infer<typeof WebcamLayout>;
+export type WebcamLook = WebcamLayout["look"];
+export type WebcamBorder = WebcamLayout["border"];
 
 // ---------------- Stage 5: layouts over time, captions, analysis ----------------
 
@@ -406,6 +447,7 @@ export const CaptionStyle = z.object({
   /** Maximum line width, % of canvas width. */
   maxWidthPct: z.number().min(30).max(95).default(70),
   rows: z.number().int().min(1).max(4).default(2),
+  fontFamily: z.string().max(200).optional(),
   animation: z.enum(["none", "fade", "rise", "pop"]).default("fade"),
 });
 export type CaptionStyle = z.infer<typeof CaptionStyle>;

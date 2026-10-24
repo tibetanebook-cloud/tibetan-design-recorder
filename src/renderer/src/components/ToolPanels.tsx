@@ -10,6 +10,7 @@ import { analyzeMedia, laneMediaIds } from "../mediaJobs";
 import { useJobs } from "../jobs";
 import { useEditor } from "../store";
 import { Check, NumberField, pct, Section, Slider } from "./Inspector";
+import { FontPicker } from "./FontPicker";
 
 const TIBETAN = /[ༀ-࿿]/;
 
@@ -105,6 +106,7 @@ export function CalloutProps({ ids, content }: { ids: string[]; content: Content
       <TextArea value={content.text} lang={content.lang} onCommit={(text, lang) => set({ text, lang })} />
       <Choice label={t("callout.style")} value={content.style} options={(["bubble", "box", "pill"] as const).map((v) => ({ value: v, label: t(`callout.${v}`) }))} onChange={(style) => set({ style })} />
       <NumberField label={t("inspector.size")} value={content.fontSize} min={8} onCommit={(v) => set({ fontSize: Math.max(8, v) })} />
+      <FontPicker value={content.fontFamily} onChange={(fontFamily) => set({ fontFamily })} />
       <div className="prop-grid">
         <ColorField label={t("callout.fill")} value={content.fill} onChange={(fill) => set({ fill })} />
         <ColorField label={t("inspector.color")} value={content.color} onChange={(color) => set({ color })} />
@@ -187,6 +189,7 @@ export function TitleProps({ ids, content }: { ids: string[]; content: Content<"
       <TextArea value={content.title} lang={content.lang} rows={2} onCommit={(title, lang) => set({ title, lang })} />
       <span className="prop-label">{t("title.subtitle")}</span>
       <TextArea value={content.subtitle} lang={content.lang} rows={2} onCommit={(subtitle) => set({ subtitle })} />
+      <FontPicker value={content.fontFamily} onChange={(fontFamily) => set({ fontFamily })} />
       <div className="prop-grid">
         <ColorField label={t("title.accent")} value={content.accent} onChange={(accent) => set({ accent })} />
         <ColorField label={t("inspector.color")} value={content.color} onChange={(color) => set({ color })} />
@@ -201,6 +204,7 @@ export function TextStyleProps({ ids, content }: { ids: string[]; content: Conte
   const set = useContentSetter(ids, content);
   return (
     <>
+      <FontPicker value={content.fontFamily} onChange={(fontFamily) => set({ fontFamily })} />
       <Check label={t("text.bold")} checked={content.bold} onChange={(bold) => set({ bold })} />
       <Choice label={t("text.align")} value={content.align} options={(["left", "center", "right"] as const).map((v) => ({ value: v, label: t(`text.${v}`) }))} onChange={(align) => set({ align })} />
       <Check label={t("text.background")} checked={!!content.background} onChange={(on) => set({ background: on ? "#14151cd9" : undefined })} />
