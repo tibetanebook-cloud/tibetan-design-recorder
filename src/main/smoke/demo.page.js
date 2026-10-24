@@ -191,7 +191,7 @@
   // events [ms, fn] (run once), tick(ms) every frame. `L(i, +ms)` = when narration line i starts.
   const scenes = {
     intro: (L, dur) => ({
-      card: { from: 0, to: dur - 700, html: `<div class="studio">Welcome to the Nangchen T. Studio</div><img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen Studio Screen Recorder</div><div class="tag">A quick tour · Tibetan & English</div>` },
+      card: { from: 0, to: dur - 700, html: `<div class="studio">Welcome to the Nangchen Tashi Studio</div><img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen Studio Screen Recorder</div><div class="tag">A quick tour · Tibetan & English</div>` },
       events: [[dur - 400, () => (cursorVisible = true)]],
       cursor: [[0, [1100, 600]]],
     }),
