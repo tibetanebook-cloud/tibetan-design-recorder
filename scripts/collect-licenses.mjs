@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf8"));
 // Shipped at runtime + bundled into the renderer.
-const bundled = ["@breezystack/lamejs", "@fontsource/noto-serif-tibetan", "gifenc", "mp4-muxer", "pixi.js", "react", "react-dom", "webm-muxer", "zustand", "scheduler"];
+const bundled = ["@breezystack/lamejs", "@fontsource/noto-serif-tibetan", "@fontsource/jomolhari", "@fontsource/uchen", "@fontsource/inter", "@fontsource/roboto", "@fontsource/open-sans", "@fontsource/montserrat", "@fontsource/lato", "@fontsource/poppins", "@fontsource/noto-sans", "@fontsource/noto-serif", "@fontsource/merriweather", "@fontsource/playfair-display", "@fontsource/oswald", "@fontsource/raleway", "@fontsource/bebas-neue", "@fontsource/lobster", "@fontsource/pacifico", "@fontsource/dancing-script", "@fontsource/caveat", "@fontsource/source-code-pro", "gifenc", "mp4-muxer", "pixi.js", "react", "react-dom", "webm-muxer", "zustand", "scheduler"];
 // Follow each package's own runtime dependencies (e.g. PixiJS → earcut, eventemitter3).
 const seen = new Set();
 const walk = (name) => {

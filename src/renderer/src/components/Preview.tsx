@@ -11,6 +11,7 @@ import { Compositor, TIBETAN_FONT } from "../compositor/Compositor";
 import { PlaybackEngine } from "../playback/engine";
 import { ensureProjectAssets, onAssetsChanged, sceneContext } from "../playback/assets";
 import { useEditor } from "../store";
+import { preloadBundledFonts } from "../bundledFonts";
 import { hitText, InlineTextEditor, type InlineEdit } from "./InlineTextEditor";
 
 /** Shared with the smoke test so it can read rendered pixels. */
@@ -69,7 +70,7 @@ export function Preview() {
     let initialized = false;
     void (async () => {
       // Pixi rasterizes text once; make sure the Tibetan font is ready first.
-      await document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད");
+      await Promise.all([document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད"), preloadBundledFonts()]);
       const p = useEditor.getState().history.present;
       await compositor.init(p.canvas.width, p.canvas.height, canvas);
       if (cancelled) return compositor.destroy();

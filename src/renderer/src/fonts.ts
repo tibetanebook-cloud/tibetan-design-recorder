@@ -1,11 +1,12 @@
 /**
- * Fonts for text, callouts, titles and captions: a few built-in choices plus
- * every font installed on this computer (Local Font Access API). Tibetan fonts
+ * Fonts for text, callouts, titles and captions: the free fonts bundled with the
+ * app plus every font installed on this computer (read at startup). Tibetan fonts
  * are listed first; text always falls back to Noto Serif Tibetan.
  */
+import { BUNDLED_FONTS } from "./bundledFonts";
 
-/** Fonts that are always there (bundled or part of every Windows/macOS/Linux desktop). */
-export const BUILT_IN_FONTS = ["Noto Serif Tibetan", "Segoe UI", "Arial", "Georgia", "Times New Roman", "Courier New", "Impact"];
+/** Fonts that are always there: bundled with the app, or part of every Windows/macOS desktop. */
+export const BUILT_IN_FONTS = [...BUNDLED_FONTS, "Segoe UI", "Arial", "Georgia", "Times New Roman", "Courier New", "Impact"];
 
 const TIBETAN_NAME = /tibet|jomolhari|monlam|qomolangma|himalaya|kailasa|uchen|umay|sambhota|dzongkha|wangdi|yagpo|pecha|tsuyig|ddc|tcrc|ཡིག/i;
 
@@ -25,11 +26,22 @@ let cache: FontList | null = null;
 /** Families installed on this computer, or null if the system did not allow reading them. */
 export async function loadComputerFonts(): Promise<FontList | null> {
   if (cache) return cache;
-  const query = (window as unknown as { queryLocalFonts?: () => Promise<LocalFont[]> }).queryLocalFonts;
-  if (!query) return null;
+  pending ??= readComputerFonts().finally(() => (pending = null));
+  return pending;
+}
+
+let pending: Promise<FontList | null> | null = null;
+
+async function readComputerFonts(): Promise<FontList | null> {
   try {
-    const fonts = await query.call(window);
-    const families = [...new Set(fonts.map((f) => f.family).filter((f) => f && f.length <= 200))].sort((a, b) => a.localeCompare(b));
+    // Through the app (works at startup, no click needed); else ask the page directly (needs a click).
+    let names = await window.tdr.listFonts().catch(() => null);
+    if (!names) {
+      const query = (window as unknown as { queryLocalFonts?: () => Promise<LocalFont[]> }).queryLocalFonts;
+      if (!query) return null;
+      names = (await query.call(window)).map((f) => f.family);
+    }
+    const families = [...new Set(names.filter((f) => f && f.length <= 200))].sort((a, b) => a.localeCompare(b));
     cache = { tibetan: families.filter(isTibetanFont), other: families.filter((f) => !isTibetanFont(f)) };
     return cache;
   } catch {

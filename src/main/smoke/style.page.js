@@ -127,11 +127,25 @@
     const tt = text.startMs + 600;
     await frame(tt);
     const box = (id, field) => comp().textBoxes.find((b) => b.clipId === id && b.field === field);
+    // The first frame after inserting can still be loading fonts: draw until the text is there.
+    for (let i = 0; i < 5 && !box(text.id, "text"); i++) await frame(tt);
     const wDefault = box(text.id, "text")?.width;
     edit("edit.props", (p) => ({ ...p, clips: p.clips.map((c) => (c.id === text.id ? { ...c, content: { ...c.content, fontFamily: "Courier New" } } : c)) }));
     await frame(tt);
     const wMono = box(text.id, "text")?.width;
     check("text font option changes the drawn text", wDefault && wMono && Math.abs(wMono - wDefault) > 4, `${wDefault?.toFixed(0)} px → ${wMono?.toFixed(0)} px (Courier New)`);
+    // Bundled free Tibetan fonts draw differently from each other (really loaded, not a fallback).
+    const widths = {};
+    for (const f of ["Noto Serif Tibetan", "Jomolhari", "Uchen"]) {
+      edit("edit.props", (p) => ({ ...p, clips: p.clips.map((c) => (c.id === text.id ? { ...c, content: { ...c.content, text: "བཀྲ་ཤིས་བདེ་ལེགས། ཀ་ཁ་ག་ང་།", lang: "bo", fontFamily: f } } : c)) }));
+      await frame(tt);
+      widths[f] = Math.round(box(text.id, "text")?.width ?? 0);
+    }
+    check("bundled Tibetan fonts (Noto Serif Tibetan, Jomolhari, Uchen) each draw", new Set(Object.values(widths)).size === 3 && Object.values(widths).every((w) => w > 50), JSON.stringify(widths));
+    const viaApp = await window.tdr.listFonts();
+    check("installed fonts are read at startup without a click", Array.isArray(viaApp) && viaApp.length > 20, Array.isArray(viaApp) ? `${viaApp.length} families` : String(viaApp));
+    edit("edit.props", (p) => ({ ...p, clips: p.clips.map((c) => (c.id === text.id ? { ...c, content: { ...c.content, text: "Typing test WWW", lang: "en", fontFamily: undefined } } : c)) }));
+    await frame(tt);
     let local = "not available";
     try {
       const fonts = await window.queryLocalFonts();

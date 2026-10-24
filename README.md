@@ -13,7 +13,8 @@ and Mac, with a full Tibetan and English interface.
 - Polished results (auto-zoom, cursor effects, styled frames, webcam bubble)
   and teaching tools (callouts, blur, transitions, captions, quizzes)
 - Webcam bubble shapes, borders and filters (skin smoothing, one-click looks, colour adjustments)
-- Double-click any text or title on the preview to edit it; any font on your computer
+- Double-click any text or title on the preview to edit it; any font on your computer, plus free
+  Tibetan (Noto Serif Tibetan, Jomolhari, Uchen) and English fonts included
 - Export the finished video (MP4, WebM, GIF, MP3/WAV) or each track on its own
 
 **Download:** [latest release](https://github.com/tibetanebook-cloud/tibetan-design-recorder/releases/latest) for Windows and Mac — see [installing](docs/INSTALL.md).

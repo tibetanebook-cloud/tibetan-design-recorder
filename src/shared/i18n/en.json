@@ -706,7 +706,8 @@
     "loading": "Loading fonts…",
     "denied": "Couldn't read this computer's fonts. The built-in fonts still work.",
     "search": "Search fonts…",
-    "none": "No font matches."
+    "none": "No font matches.",
+    "included": "Free Fonts (Included)"
   },
   "inline": {
     "edit": "Edit text (Enter saves, Shift+Enter new line, Esc cancels)",

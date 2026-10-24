@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.2.3 — free fonts included (2026-10-23)
+
+- **Free, open-source fonts come with the app** (SIL Open Font License), so every user has them:
+  - Tibetan: **Noto Serif Tibetan, Jomolhari, Uchen**
+  - English: Inter, Roboto, Open Sans, Montserrat, Lato, Poppins, Noto Sans, Noto Serif, Merriweather,
+    Playfair Display, Oswald, Raleway, Bebas Neue, Lobster, Pacifico, Dancing Script, Caveat, Source Code Pro
+- They are loaded when the app starts, so text appears in the right font straight away.
+- **All fonts installed on your computer** are read when the app starts too: the font list is complete
+  the first time you open it (no extra click). Groups: Tibetan fonts · free fonts included · on this computer.
+
 ## 0.2.2 — all your fonts (2026-10-23)
 
 - The font option (text, callouts, titles, captions) now opens a searchable list of **every font

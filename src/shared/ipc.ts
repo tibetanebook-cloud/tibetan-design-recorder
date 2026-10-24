@@ -29,6 +29,7 @@ export const IPC = {
   textOpen: "file:text-open",
   textSave: "file:text-save",
   transcribeConfig: "transcribe:config",
+  fontsList: "fonts:list",
   transcribeSetConfig: "transcribe:set-config",
   transcribeRun: "transcribe:run",
   menuCommand: "menu:command",

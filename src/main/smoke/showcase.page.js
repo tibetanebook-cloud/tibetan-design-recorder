@@ -159,7 +159,13 @@
       // Wait until this computer's fonts are listed (not just the built-in ones).
       for (let i = 0; i < 100 && document.querySelectorAll(".font-row[data-font]").length < 20; i++) await sleep(100);
       await sleep(600);
-      return { rows: document.querySelectorAll(".font-row[data-font]").length, tibetan: document.querySelectorAll(".font-row .font-sample").length };
+      const all = [...document.querySelectorAll(".font-row[data-font]")].map((b) => b.dataset.font);
+      // Show the search: the Monlam fonts installed on this computer.
+      const input = document.querySelector(".font-search");
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "Monlam");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      await sleep(800);
+      return { rows: all.length, tibetan: document.querySelectorAll(".font-row .font-sample").length, monlam: all.filter((f) => /monlam/i.test(f)), bundled: ["Jomolhari", "Uchen", "Inter", "Pacifico"].filter((f) => all.includes(f)) };
     },
 
     async closeFonts() {

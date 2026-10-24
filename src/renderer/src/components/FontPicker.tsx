@@ -4,6 +4,7 @@
  * a click), Tibetan fonts first, each name shown in its own font.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BUNDLED_LATIN_FONTS, BUNDLED_TIBETAN_FONTS } from "../bundledFonts";
 import { BUILT_IN_FONTS, computerFontsLoaded, ensureFont, isTibetanFont, loadComputerFonts, type FontList } from "../fonts";
 import { useEditor } from "../store";
 
@@ -49,17 +50,20 @@ export function FontPicker({ value, onChange }: { value: string | undefined; onC
     return () => window.removeEventListener("pointerdown", away, true);
   }, [open]);
 
+  // Tibetan (bundled first, then installed) · free fonts included with the app · everything else installed.
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const match = (f: string) => !q || f.toLowerCase().includes(q);
-    const tibetan = [...new Set([...(fonts?.tibetan ?? []), ...BUILT_IN_FONTS.filter(isTibetanFont)])].filter(match);
-    const shown = new Set(tibetan);
-    const other = (fonts ? fonts.other : BUILT_IN_FONTS.filter((f) => !isTibetanFont(f))).filter((f) => !shown.has(f) && match(f));
-    return { tibetan, other };
+    const tibetan = [...new Set([...BUNDLED_TIBETAN_FONTS, ...(fonts?.tibetan ?? [])])].filter(match);
+    const included = BUNDLED_LATIN_FONTS.filter(match);
+    const shown = new Set([...tibetan, ...BUNDLED_LATIN_FONTS]);
+    const system = fonts ? fonts.other : BUILT_IN_FONTS.filter((f) => !isTibetanFont(f));
+    const other = system.filter((f) => !shown.has(f) && match(f));
+    return { tibetan, included, other };
   }, [fonts, query]);
 
-  const total = groups.tibetan.length + groups.other.length;
-  const first = groups.tibetan[0] ?? groups.other[0];
+  const total = groups.tibetan.length + groups.included.length + groups.other.length;
+  const first = groups.tibetan[0] ?? groups.included[0] ?? groups.other[0];
   const row = (f: string) => (
     <button key={f} type="button" role="option" aria-selected={value === f} className={`font-row${value === f ? " selected" : ""}`} data-font={f} onClick={() => void pick(f)}>
       <span className="font-name" lang={TIBETAN.test(f) ? "bo" : "en"} data-l10n-skip style={{ fontFamily: `${safe(f)}, var(--font-latin)` }}>
@@ -106,6 +110,8 @@ export function FontPicker({ value, onChange }: { value: string | undefined; onC
             {state === "loading" && <p className="hint">{t("font.loading")}</p>}
             {groups.tibetan.length > 0 && <div className="font-group">{t("font.tibetan")}</div>}
             {groups.tibetan.map(row)}
+            {groups.included.length > 0 && <div className="font-group">{t("font.included")}</div>}
+            {groups.included.map(row)}
             {groups.other.length > 0 && (
               <div className="font-group">
                 {fonts ? t("font.computer") : t("font.builtIn")} <span lang="en">({groups.other.length})</span>

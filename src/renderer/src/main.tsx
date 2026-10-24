@@ -1,5 +1,8 @@
-import "@fontsource/noto-serif-tibetan/400.css";
-import "@fontsource/noto-serif-tibetan/700.css";
+// Free fonts bundled with the app (Noto Serif Tibetan, Jomolhari, Uchen + English fonts).
+import "./bundledFonts";
+import { loadComputerFonts } from "./fonts";
+// Read the installed fonts now, so the font list is complete the first time it opens.
+void loadComputerFonts();
 import "./styles/theme.css";
 import "./styles/timeline.css";
 import "./styles/effects.css";

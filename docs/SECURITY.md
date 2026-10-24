@@ -17,6 +17,7 @@ lists the protections and how they are tested. Last reviewed for 0.2.0 (2026-10-
 | Auto-captions | Sends only audio/video files, only to an `https://` service (or `http://` on this computer, for a local server). Your API key stays in the app's settings folder. | `src/main/transcribe.ts` |
 | Test hooks | The automated-test hooks exist only when the app is started by its own self-test; normal use has none. | `src/preload/index.ts`, `src/renderer/src/App.tsx` |
 | Packaged app | Electron fuses: can't be run as plain Node.js, no `NODE_OPTIONS` or debugger flags, the app loads only from its packaged archive, which is integrity-checked; cookies are encrypted. | `electron-builder.yml` |
+| Fonts | The app reads only the *names* of the fonts installed on your computer, to list them; nothing is sent anywhere. Bundled fonts are open-source (OFL) and load from the app itself. | `src/main/index.ts` (`fonts:list`), `src/renderer/src/fonts.ts` |
 | Extensions | Extensions are data only (styles, wallpapers, sounds); no extension code is run. | `src/main/extensions.ts` |
 
 ## Your data

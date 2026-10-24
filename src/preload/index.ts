@@ -13,6 +13,8 @@ const api = {
   /** True only in automated test runs (the main process passes this flag). */
   testMode: process.argv.includes("--tdr-test-hooks"),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke(IPC.settingsGet),
+  /** Font families installed on this computer (null if the system refused). */
+  listFonts: (): Promise<string[] | null> => ipcRenderer.invoke(IPC.fontsList),
   setLanguage: (language: Language): Promise<void> => ipcRenderer.invoke(IPC.settingsSetLanguage, language),
   setShortcuts: (shortcuts: Record<string, string | null>): Promise<Settings> => ipcRenderer.invoke(IPC.settingsSetShortcuts, shortcuts),
   /** Shows the open dialog; returns absolute paths of chosen media files. */

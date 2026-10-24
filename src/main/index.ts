@@ -13,7 +13,7 @@ import { loadProject, saveProject, SessionRecovery } from "./project-io";
 import { RecordingController } from "./recording/controller";
 import { SettingsStore } from "./settings";
 import { TranscribeService } from "./transcribe";
-import { hardenWebContents, WritePolicy } from "./security";
+import { hardenWebContents, isAppUrl, WritePolicy } from "./security";
 import { migrateUserData } from "./migrate";
 import { Library } from "./library";
 import { closeAllExports, exportClose, exportOpen, exportWrite } from "./exportFiles";
@@ -266,6 +266,17 @@ function registerIpc(): void {
   app.on("before-quit", () => void closeAllExports());
   ipcMain.handle(IPC.librarySave, (_e, items: Parameters<Library["saveUser"]>[0]) => library.saveUser(items));
   ipcMain.handle(IPC.transcribeConfig, () => transcriber.config());
+  // The installed-font list needs a user click in the page; run the fixed query as one for
+  // our own window so the list is ready at startup (no click). Names only, nothing else.
+  ipcMain.handle(IPC.fontsList, async (e) => {
+    if (!isAppUrl(e.sender.getURL())) return null;
+    try {
+      const names = (await e.sender.executeJavaScript("window.queryLocalFonts().then((f) => [...new Set(f.map((x) => x.family))])", true)) as unknown;
+      return Array.isArray(names) ? names.filter((n): n is string => typeof n === "string" && n.length > 0 && n.length <= 200).slice(0, 5000) : null;
+    } catch {
+      return null;
+    }
+  });
   ipcMain.handle(IPC.transcribeSetConfig, (_e, patch: { baseUrl?: string; model?: string; key?: string }) => transcriber.setConfig(patch));
   ipcMain.handle(IPC.transcribeRun, (_e, req: { path: string; language: string }) => transcriber.run(req));
   ipcMain.handle(IPC.settingsSetLanguage, (_e, language: unknown) => {
