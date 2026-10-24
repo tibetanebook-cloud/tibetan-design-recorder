@@ -37,7 +37,7 @@
     #demo-card .bo { font-family: "Noto Serif Tibetan"; font-weight: 700; font-size: 64px; line-height: 1.9; color: #e8c56a; }
     #demo-card .en { font-size: 54px; font-weight: 700; margin-top: -8px; }
     #demo-card .tag { font-size: 30px; color: #c9bfa8; margin-top: 14px; }
-    #demo-card .url { font-size: 30px; color: #f1cf7a; margin-top: 24px; font-weight: 600; }
+    #demo-card .url { font-size: 44px; color: #f1cf7a; margin-top: 24px; font-weight: 600; }
     #demo-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,10,14,.55);
       color: #fff; font-size: 260px; font-weight: 800; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
     #demo-rec { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); padding: 8px 18px; border-radius: 22px; background: rgba(20,20,26,.92);
@@ -358,7 +358,7 @@
     }),
     outro: (L, dur) => ({
       events: [[0, () => st().setExportDialog(null)], [500, () => (cursorVisible = false)]],
-      card: { from: 400, to: dur + 1000, fadeIn: true, html: `<img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen T. Studio Screen Recorder</div><div class="tag">Free for Windows and Mac · Tibetan & English</div><div class="url">github.com/tibetanebook-cloud/tibetan-design-recorder</div>` },
+      card: { from: 400, to: dur + 1000, fadeIn: true, html: `<img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen T. Studio Screen Recorder</div><div class="tag">Available for Windows and Mac · Tibetan & English</div><div class="url">nangchen.com</div>` },
     }),
   };
   const scissors = () => [...document.querySelectorAll(".tl-btn")].find((x) => x.textContent.includes("✂"));
