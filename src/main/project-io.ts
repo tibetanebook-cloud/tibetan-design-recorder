@@ -13,9 +13,12 @@ import { dirname, join, relative } from "node:path";
 import { parseProject, serializeProject, type Project } from "@shared/project/schema";
 import type { RecoveryInfo } from "@shared/ipc";
 
+let tmpSeq = 0;
+
 export async function writeFileAtomic(path: string, data: string): Promise<void> {
   await fs.mkdir(dirname(path), { recursive: true });
-  const tmp = `${path}.${process.pid}.tmp`;
+  // Unique per write: two saves of the same file at once must not share a temp file.
+  const tmp = `${path}.${process.pid}.${++tmpSeq}.tmp`;
   const handle = await fs.open(tmp, "w");
   try {
     await handle.writeFile(data, "utf8");

@@ -34,9 +34,14 @@ export class SettingsStore {
     return this.value;
   }
 
+  private writing: Promise<void> = Promise.resolve();
+
   async update(patch: Partial<Settings>): Promise<Settings> {
     this.value = { ...this.value, ...patch };
-    await writeFileAtomic(this.path, JSON.stringify(this.value, null, 2));
+    const json = JSON.stringify(this.value, null, 2);
+    // One write at a time, in order: the last change is the one left on disk.
+    this.writing = this.writing.catch(() => undefined).then(() => writeFileAtomic(this.path, json));
+    await this.writing;
     return this.value;
   }
 

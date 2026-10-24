@@ -21,6 +21,7 @@ import effectsScript from "./smoke/effects.page.js?raw";
 import toolsScript from "./smoke/tools.page.js?raw";
 import styleScript from "./smoke/style.page.js?raw";
 import showcaseScript from "./smoke/showcase.page.js?raw";
+import { runDemoVideo } from "./demoVideo";
 import exportScript from "./smoke/export.page.js?raw";
 import l10nScript from "./smoke/l10n.page.js?raw";
 import { createServer } from "node:http";
@@ -393,6 +394,12 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     check("renderer ready", true);
     win.setSize(1440, 900);
 
+    if (process.argv.includes("--demo-video")) {
+      await hooks.setLanguage("bo");
+      await wait(1500);
+      await runDemoVideo(win, page, wait, app.getAppPath());
+      return 0;
+    }
     if (process.argv.includes("--showcase")) {
       await runShowcase(win, hooks, page, wait);
       return 0;
