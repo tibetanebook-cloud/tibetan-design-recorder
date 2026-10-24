@@ -17,6 +17,7 @@
     "test:e2e": "npm run build && playwright test",
     "smoke": "npm run build && node scripts/run-smoke.mjs",
     "smoke:l10n": "npm run build && node scripts/run-smoke.mjs --no-record --l10n",
+    "screenshots": "npm run build && electron . --smoke-test --showcase",
     "i18n:report": "python scripts/i18n/tibetan_terms.py report",
     "i18n:lint": "node --experimental-strip-types --no-warnings scripts/i18n/lint-json.ts",
     "icons": "python build/icon-source/make_icons.py",

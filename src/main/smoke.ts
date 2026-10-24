@@ -20,6 +20,7 @@ import timelineScript from "./smoke/timeline.page.js?raw";
 import effectsScript from "./smoke/effects.page.js?raw";
 import toolsScript from "./smoke/tools.page.js?raw";
 import styleScript from "./smoke/style.page.js?raw";
+import showcaseScript from "./smoke/showcase.page.js?raw";
 import exportScript from "./smoke/export.page.js?raw";
 import l10nScript from "./smoke/l10n.page.js?raw";
 import { createServer } from "node:http";
@@ -392,6 +393,11 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     check("renderer ready", true);
     win.setSize(1440, 900);
 
+    if (process.argv.includes("--showcase")) {
+      await runShowcase(win, hooks, page, wait);
+      return 0;
+    }
+
     for (const language of ["bo", "en"] as const) {
       await hooks.setLanguage(language);
       await wait(1500);
@@ -445,4 +451,34 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
   for (const c of checks) console.log(`${c.ok ? "PASS" : "FAIL"}  ${c.name}${c.detail ? `  — ${c.detail}` : ""}`);
   await hooks.recovery.end();
   return passed ? 0 : 1;
+}
+
+/** README screenshots in the Tibetan UI (`npm run screenshots`): docs/images/screenshots/*.png. */
+async function runShowcase(win: BrowserWindow, hooks: Hooks, page: <T>(code: string) => Promise<T>, wait: (ms: number) => Promise<void>): Promise<void> {
+  const root = app.getAppPath();
+  const outDir = join(root, "docs", "images", "screenshots");
+  await fs.mkdir(outDir, { recursive: true });
+  await hooks.setLanguage("bo");
+  await wait(1500);
+  await page(showcaseScript.replaceAll("__SHOWCASE_DIR__", join(root, "docs", "showcase").replaceAll("\\", "\\\\")));
+  await page("window.__showcase.setup()");
+  await wait(1500);
+  const shots: [string, string][] = [
+    ["editor", "01-editor"],
+    ["webcamStyle", "02-webcam-shapes-borders"],
+    ["webcamFilters", "03-webcam-filters"],
+    ["inlineEdit", "04-double-click-edit"],
+    ["closeEditor", ""],
+    ["library", "05-titles-library"],
+    ["captions", "06-captions"],
+    ["exportDialog", "07-export"],
+    ["closeExport", ""],
+  ];
+  for (const [step, name] of shots) {
+    await page(`window.__showcase.${step}()`);
+    if (!name) continue;
+    await wait(900);
+    await fs.writeFile(join(outDir, `${name}.png`), await snapshot(win));
+    console.log(`showcase: ${name}.png`);
+  }
 }

@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Showcase "screen recording": a Tibetan alphabet lesson slide (1920×1080). Rendered to lesson.png by make_showcase.py. -->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:"NST";src:url("../../node_modules/@fontsource/noto-serif-tibetan/files/noto-serif-tibetan-tibetan-700-normal.woff") format("woff");font-weight:700}
+@font-face{font-family:"NST";src:url("../../node_modules/@fontsource/noto-serif-tibetan/files/noto-serif-tibetan-tibetan-400-normal.woff") format("woff");font-weight:400}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#f6f1e6;font-family:"Segoe UI",sans-serif;color:#2b2420}
+.bar{height:64px;background:#e9e1d1;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid #d6cbb5}
+.dot{width:14px;height:14px;border-radius:50%}
+.url{margin-left:24px;flex:0 0 900px;height:36px;border-radius:18px;background:#fff;display:flex;align-items:center;padding:0 20px;color:#7a6d5c;font-size:18px}
+.page{display:flex;height:1016px}
+.side{width:360px;background:#9b1b30;color:#f8ecd4;padding:48px 36px;box-sizing:border-box}
+.side h2{font-family:"NST";font-weight:700;font-size:40px;line-height:1.9;margin:0 0 16px;color:#f1cf7a}
+.side .item{font-family:"NST";font-size:28px;line-height:2.1;opacity:.85}
+.side .item.on{opacity:1;color:#fff;border-left:6px solid #f1cf7a;padding-left:14px;margin-left:-20px}
+.main{flex:1;padding:56px 90px;box-sizing:border-box}
+h1{font-family:"NST";font-weight:700;font-size:64px;line-height:1.9;margin:0;color:#9b1b30}
+.sub{font-size:28px;color:#6d5f4e;margin:-6px 0 34px}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;width:1100px}
+.c{background:#fff;border:2px solid #e2d6bf;border-radius:18px;height:128px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.c b{font-family:"NST";font-weight:700;font-size:64px;line-height:1.4}
+.c span{font-size:20px;color:#8b7d6a;margin-top:-6px}
+.c.hi{border-color:#d4a94a;box-shadow:0 0 0 6px rgba(212,169,74,.35);background:#fff8e6}
+</style></head><body>
+<div class="bar"><span class="dot" style="background:#e0605a"></span><span class="dot" style="background:#e8b64c"></span><span class="dot" style="background:#69b55a"></span><div class="url">lessons.example/tibetan/alphabet</div></div>
+<div class="page">
+<div class="side"><h2>སློབ་ཚན།</h2>
+<div class="item on">༡ གསལ་བྱེད་སུམ་ཅུ།</div><div class="item">༢ དབྱངས་ཡིག་བཞི།</div><div class="item">༣ མགོ་ཅན།</div><div class="item">༤ འདོགས་ཅན།</div><div class="item">༥ སྔོན་འཇུག</div></div>
+<div class="main"><h1>གསལ་བྱེད་སུམ་ཅུ།</h1><div class="sub">The thirty consonants — read each row aloud</div>
+<div class="grid" id="g"></div></div></div>
+<script>
+const L=[["ཀ","ka"],["ཁ","kha"],["ག","ga"],["ང","nga"],["ཅ","ca"],["ཆ","cha"],["ཇ","ja"],["ཉ","nya"],["ཏ","ta"],["ཐ","tha"],["ད","da"],["ན","na"],["པ","pa"],["ཕ","pha"],["བ","ba"],["མ","ma"],["ཙ","tsa"],["ཚ","tsha"],["ཛ","dza"],["ཝ","wa"],["ཞ","zha"],["ཟ","za"],["འ","'a"],["ཡ","ya"],["ར","ra"],["ལ","la"],["ཤ","sha"],["ས","sa"],["ཧ","ha"],["ཨ","a"]];
+document.getElementById("g").innerHTML=L.map(([t,r],i)=>`<div class="c${i===3?" hi":""}"><b>${t}</b><span>${r}</span></div>`).join("");
+</script></body></html>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <!-- Showcase "webcam": an illustrated presenter (not a real person). -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#5a7a9c"/><stop offset="1" stop-color="#2a3a52"/></radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2b08a"/><stop offset="1" stop-color="#c98f68"/></linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a32535"/><stop offset="1" stop-color="#6e1222"/></linearGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+  <!-- bookshelf hint -->
+  <g opacity="0.35"><rect x="60" y="120" width="300" height="16" fill="#1c2636"/><rect x="80" y="60" width="34" height="60" fill="#d4a94a"/><rect x="120" y="70" width="28" height="50" fill="#9b1b30"/><rect x="154" y="56" width="40" height="64" fill="#e8dcc0"/><rect x="760" y="180" width="280" height="16" fill="#1c2636"/><rect x="790" y="120" width="30" height="60" fill="#e8dcc0"/><rect x="826" y="110" width="40" height="70" fill="#d4a94a"/></g>
+  <!-- body / chuba -->
+  <path d="M190 1080 C 210 840 330 760 540 750 C 750 760 870 840 890 1080 Z" fill="url(#robe)"/>
+  <path d="M430 760 L540 930 L650 760 C 610 790 470 790 430 760 Z" fill="#f2e6cc"/>
+  <path d="M540 930 L470 1080 L540 1080 Z" fill="#d4a94a" opacity="0.9"/>
+  <!-- neck -->
+  <path d="M478 640 L478 780 C 510 810 570 810 602 780 L602 640 Z" fill="#c4875f"/>
+  <!-- hair back -->
+  <path d="M330 470 C 320 250 420 170 545 170 C 680 170 770 260 755 470 C 760 560 740 640 720 700 L360 700 C 340 640 325 560 330 470 Z" fill="#1f1714"/>
+  <!-- face -->
+  <ellipse cx="542" cy="470" rx="190" ry="230" fill="url(#skin)"/>
+  <ellipse cx="352" cy="480" rx="30" ry="50" fill="#d29c76"/><ellipse cx="732" cy="480" rx="30" ry="50" fill="#d29c76"/>
+  <!-- hair front -->
+  <path d="M350 420 C 360 260 460 220 560 225 C 660 230 730 290 735 420 C 690 330 620 300 560 300 C 480 300 420 330 350 420 Z" fill="#241a16"/>
+  <!-- brows, eyes -->
+  <path d="M432 410 Q 470 392 508 408" stroke="#2a1d17" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="M576 408 Q 614 392 652 410" stroke="#2a1d17" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <ellipse cx="470" cy="455" rx="22" ry="17" fill="#2a1d17"/><ellipse cx="614" cy="455" rx="22" ry="17" fill="#2a1d17"/>
+  <circle cx="477" cy="449" r="6" fill="#fff"/><circle cx="621" cy="449" r="6" fill="#fff"/>
+  <!-- nose, cheeks, smile -->
+  <path d="M542 470 Q 532 530 548 545" stroke="#b07552" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <ellipse cx="440" cy="540" rx="40" ry="22" fill="#e58f7c" opacity="0.35"/><ellipse cx="644" cy="540" rx="40" ry="22" fill="#e58f7c" opacity="0.35"/>
+  <path d="M478 588 Q 542 640 606 588" stroke="#8a3b2e" stroke-width="10" fill="#fff" stroke-linecap="round"/>
+  <!-- turquoise earrings -->
+  <circle cx="352" cy="548" r="14" fill="#2fb3a6"/><circle cx="732" cy="548" r="14" fill="#2fb3a6"/>
+</svg>

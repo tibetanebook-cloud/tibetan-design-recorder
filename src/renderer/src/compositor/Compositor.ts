@@ -631,26 +631,31 @@ export class Compositor {
     };
     switch (c.template) {
       case "lowerThird": {
-        const x = 96 * u, h = (c.subtitle ? 150 : 104) * u, y = H - h - 110 * u;
+        // Sized from the real text heights: Tibetan stacks need about twice the line height of Latin.
+        const x = 96 * u;
         const tw = Math.min(W * 0.55, 1000 * u);
         const title = this.text(`${layer.clipId}|t`, c.title, 54 * u, c.color, c.lang, tw, x + 40 * u, 0, { bold: true, align: "left", fontFamily: c.fontFamily });
-        const w = Math.min(tw, title.width) + 80 * u;
+        const sub = c.subtitle ? this.text(`${layer.clipId}|s`, c.subtitle, 32 * u, c.accent, c.lang, tw, x + 40 * u, 0, { align: "left", fontFamily: c.fontFamily }) : undefined;
+        const padY = 12 * u;
+        const h = Math.max(c.subtitle ? 150 * u : 104 * u, padY * 2 + title.height + (sub ? sub.height - 6 * u : 0));
+        const y = H - h - 110 * u;
+        const w = Math.min(tw, Math.max(title.width, sub?.width ?? 0)) + 80 * u;
         node.addChild(new Graphics().roundRect(x, y, w * e, h, 10 * u).fill({ color: c.background, alpha: 0.92 }));
         node.addChild(new Graphics().rect(x, y, 10 * u, h * e).fill(c.accent));
-        title.position.set(x + 40 * u, y + (c.subtitle ? 18 : 16) * u);
+        const top = y + (h - title.height - (sub ? sub.height - 6 * u : 0)) / 2;
+        title.position.set(x + 40 * u, top);
         const mask = new Graphics().rect(x, y - 40 * u, w * e, h + 80 * u).fill(0xffffff);
         const texts = new Container();
         texts.addChild(rise(title, e2));
-        if (c.subtitle) {
-          const sub = this.text(`${layer.clipId}|s`, c.subtitle, 32 * u, c.accent, c.lang, tw, x + 40 * u, 0, { align: "left", fontFamily: c.fontFamily });
-          sub.position.set(x + 40 * u, y + h - sub.height - 14 * u);
+        if (sub) {
+          sub.position.set(x + 40 * u, top + title.height - 6 * u);
           texts.addChild(rise(sub, e2));
         }
         texts.addChild(mask);
         texts.mask = mask;
         node.addChild(texts);
-        this.hit(layer.clipId, "title", Compositor.textBox(title), c.lang, 54 * u, "left");
-        if (c.subtitle) this.hit(layer.clipId, "subtitle", { x: x + 40 * u, y: y + h - 32 * u * 2.2, width: tw, height: 32 * u * 2 }, c.lang, 32 * u, "left");
+        this.hit(layer.clipId, "title", { ...Compositor.textBox(title), y: top }, c.lang, 54 * u, "left");
+        if (sub) this.hit(layer.clipId, "subtitle", { ...Compositor.textBox(sub), y: top + title.height - 6 * u }, c.lang, 32 * u, "left");
         return node;
       }
       case "chapter": {
@@ -660,7 +665,8 @@ export class Compositor {
         const sub = this.text(`${layer.clipId}|s`, c.subtitle, 36 * u, c.accent, c.lang, f.width - 400 * u, x, 0, { align: "left", fontFamily: c.fontFamily });
         sub.position.set(x, f.y + f.height / 2 - 100 * u);
         const title = this.text(`${layer.clipId}|t`, c.title, 88 * u, c.color, c.lang, f.width - 400 * u, x, 0, { bold: true, align: "left", fontFamily: c.fontFamily });
-        title.position.set(x, f.y + f.height / 2 - 40 * u);
+        // Title starts below the subtitle line (Tibetan stacks are tall).
+        title.position.set(x, Math.max(f.y + f.height / 2 - 40 * u, sub.y + sub.height - 8 * u));
         node.addChild(bar, rise(sub, e), rise(title, e2));
         this.hit(layer.clipId, "subtitle", Compositor.textBox(sub), c.lang, 36 * u, "left");
         this.hit(layer.clipId, "title", Compositor.textBox(title), c.lang, 88 * u, "left");

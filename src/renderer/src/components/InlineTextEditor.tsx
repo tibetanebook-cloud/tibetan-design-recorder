@@ -94,7 +94,8 @@ export function InlineTextEditor({ edit, project, onDone }: { edit: InlineEdit; 
   };
 
   const pct = (v: number, of: number) => `${(v / of) * 100}%`;
-  const minW = Math.max(edit.view.width, 240);
+  // Room to type: wider than the drawn text so a short title doesn't wrap while editing.
+  const minW = Math.min(W, Math.max(edit.view.width * 1.25 + 80, 720));
   const left = Math.min(Math.max(0, edit.box.align === "center" ? edit.view.x + edit.view.width / 2 - minW / 2 : edit.box.align === "right" ? edit.view.x + edit.view.width - minW : edit.view.x), W - minW);
   return (
     <textarea
