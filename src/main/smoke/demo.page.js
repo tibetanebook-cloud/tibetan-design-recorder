@@ -39,7 +39,7 @@
     #demo-card .tag { font-size: 30px; color: #c9bfa8; margin-top: 14px; }
     #demo-card .share { font-size: 34px; font-style: italic; color: #f3ead8; margin-top: 18px; }
     #demo-card .studio { font-size: 34px; letter-spacing: 3px; text-transform: uppercase; color: #e8c56a; margin-bottom: 26px; font-weight: 600; }
-    #demo-card img.big { width: 460px; height: 460px; border-radius: 0; box-shadow: none; filter: drop-shadow(0 24px 70px rgba(0,0,0,.7)) drop-shadow(0 0 60px rgba(232,197,106,.25)); margin-bottom: 26px; }
+    #demo-card img.big { width: 380px; height: 380px; border-radius: 0; box-shadow: none; filter: drop-shadow(0 24px 70px rgba(0,0,0,.7)) drop-shadow(0 0 60px rgba(232,197,106,.25)); margin-bottom: 26px; }
     #demo-card .url { font-size: 44px; color: #f1cf7a; margin-top: 24px; font-weight: 600; }
     #demo-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,10,14,.55);
       color: #fff; font-size: 260px; font-weight: 800; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
@@ -155,20 +155,32 @@
   const DUR = 30000;
   const base = { sourceInMs: 0, speed: 1, opacity: 1, volume: 1, fadeInMs: 0, fadeOutMs: 0, muted: false, hidden: false, locked: false };
   const DIR = "__SHOWCASE_DIR__";
-  const buildLesson = () => {
+  const MUSIC = `${DIR}\\..\\..\\resources\\library\\music`;
+  const buildLesson = (opts = {}) => {
     const p0 = P();
     const screen = p0.tracks.find((t) => t.kind === "screen");
     const cam = p0.tracks.find((t) => t.kind === "webcam");
+    const mic = p0.tracks.find((t) => t.kind === "mic");
+    const sys = p0.tracks.find((t) => t.kind === "system");
+    const audio = opts.audio && mic && sys;
     st().edit("demo", (p) => ({
       ...p,
       name: "གསལ་བྱེད་སུམ་ཅུ། སློབ་ཚན་དང་པོ།",
       media: [
         { id: "med_lesson", kind: "image", origin: "import", path: `${DIR}\\lesson.png`, durationMs: DUR, width: 1920, height: 1080, clockOffsetMs: 0 },
         { id: "med_presenter", kind: "image", origin: "import", path: `${DIR}\\presenter.png`, durationMs: DUR, width: 1080, height: 1080, clockOffsetMs: 0 },
+        ...(audio ? [
+          { id: "med_mic", kind: "audio", origin: "mic", path: `${MUSIC}\\soft-pulse.wav`, durationMs: 19200, clockOffsetMs: 0 },
+          { id: "med_sys", kind: "audio", origin: "system", path: `${MUSIC}\\mountain-pluck.wav`, durationMs: 20000, clockOffsetMs: 0 },
+        ] : []),
       ],
       clips: [
         { id: "clp_lesson", trackId: screen.id, mediaId: "med_lesson", content: { type: "media" }, startMs: 0, durationMs: DUR, ...base },
         { id: "clp_cam", trackId: cam.id, mediaId: "med_presenter", content: { type: "media" }, startMs: 0, durationMs: DUR, ...base },
+        ...(audio ? [
+          { id: "clp_mic", trackId: mic.id, mediaId: "med_mic", content: { type: "media" }, startMs: 0, durationMs: 19200, ...base },
+          { id: "clp_sys", trackId: sys.id, mediaId: "med_sys", content: { type: "media" }, startMs: 0, durationMs: 20000, ...base },
+        ] : []),
       ],
       markers: [],
       zooms: [],
@@ -189,7 +201,7 @@
   // ------------------------------------------------------------------ scenes
   // Each scene: cursor keyframes [ms, target] (the cursor glides in the 650 ms before each),
   // events [ms, fn] (run once), tick(ms) every frame. `L(i, +ms)` = when narration line i starts.
-  const scenes = {
+  const defaultScenes = {
     intro: (L, dur) => ({
       card: { from: 0, to: dur - 700, html: `<div class="studio">Welcome to the Nangchen Tashi Studio</div><img src="${ASSETS.icon}"><div class="bo">ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས།</div><div class="en">Nangchen Studio Screen Recorder</div><div class="tag">A quick tour · Tibetan & English</div>` },
       events: [[dur - 400, () => (cursorVisible = true)]],
@@ -374,6 +386,18 @@
     const r = el.getBoundingClientRect();
     return [r.right - 3, r.top + r.height / 2];
   };
+  /** Everything a scene file needs (see smoke/training.page.js). */
+  const H = {
+    T, X, S, st, P, sleep, lane, clipOf, ease, clamp01, setW, setContent, setClip, pos, byText, previewPoint, textBoxPoint,
+    scrollPanelTo, click, dblclickPreview, setTextarea, setInput, maskRecorder, buildLesson, scissors, lessonPieces, lastLessonPiece,
+    edgeOf, ASSETS, DUR, $,
+    now: () => now,
+    showCursor: (v) => (cursorVisible = v),
+    rippleAt: (target) => { const p = pos(target); if (p) ripple = { x: p[0], y: p[1], t: now }; },
+    /** The panel section whose heading is the translation of `key`. */
+    section: (key) => [...document.querySelectorAll(".prop-section")].find((x) => x.querySelector("h3")?.textContent.trim() === st().t(key)),
+  };
+  const scenes = window.__demoSceneFactory ? window.__demoSceneFactory(H, defaultScenes) : defaultScenes;
 
   // ------------------------------------------------------------------ timeline of scenes
   let start = 0;
@@ -408,6 +432,8 @@
       now = t;
       const seg = segs.findLast((s) => t >= s.start) ?? segs[0];
       const ms = t - seg.start;
+      // Starting mid-way (a render chunk): the loop below replays every earlier action in
+      // order. Scenes record any lasting result of an animation as an action of its own.
       // Run every action that is due, including earlier scenes' (when starting mid-way).
       for (const sg of segs) {
         if (sg.start > t) break;
@@ -438,7 +464,7 @@
       // Highlight ring.
       const ring = $("demo-ring");
       const active = (seg.ring ?? []).find(([a, b]) => ms >= a && ms <= b);
-      const el = active && document.querySelector(active[2]);
+      const el = active && (typeof active[2] === "function" ? active[2]() : document.querySelector(active[2]));
       if (el) {
         const r = el.getBoundingClientRect();
         const fade = Math.min(1, (ms - active[0]) / 250, (active[1] - ms) / 250);

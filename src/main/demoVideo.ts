@@ -7,9 +7,10 @@
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import type { BrowserWindow } from "electron";
+import { app, type BrowserWindow } from "electron";
 import demoScript from "./smoke/demo.page.js?raw";
 import showcaseScript from "./smoke/showcase.page.js?raw";
+import trainingScenes from "./smoke/training.page.js?raw";
 
 const arg = (name: string): string | undefined => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 
@@ -35,6 +36,8 @@ export async function runDemoVideo(win: BrowserWindow, page: <T>(code: string) =
     banner: await asset("docs/images/social-preview.png"),
   };
   await page(showcaseScript.replaceAll("__SHOWCASE_DIR__", join(appRoot, "docs", "showcase").replaceAll("\\", "\\\\")));
+  // Scene set: the short tour (default) or the full training video.
+  if (arg("demo-scenes") === "training") await page(trainingScenes);
   const showcaseDir = join(appRoot, "docs", "showcase").replaceAll("\\", "\\\\");
   await page(demoScript.replace("__PLAN__", JSON.stringify(plan)).replace("__ASSETS__", JSON.stringify(assets)).replaceAll("__SHOWCASE_DIR__", showcaseDir));
   await page("window.__demo.setup()");
@@ -90,6 +93,7 @@ export async function runDemoVideo(win: BrowserWindow, page: <T>(code: string) =
     return;
   }
 
+  win.webContents.on("render-process-gone", (_e, d) => console.log("demo: renderer gone", JSON.stringify(d)));
   const out = join(dir, arg("demo-out") ?? "video-only.mp4");
   const ffmpeg = arg("ffmpeg");
   if (!ffmpeg) throw new Error("--ffmpeg=<path> is required");
@@ -111,8 +115,11 @@ export async function runDemoVideo(win: BrowserWindow, page: <T>(code: string) =
     }
     const ok = enc!.stdin!.write(img.toBitmap());
     if (!ok) await new Promise((r) => enc!.stdin!.once("drain", r));
-    if (f % 90 === 0) {
+    if (f % Number(arg("demo-log-every") ?? 90) === 0) {
       const done = f - first + 1, per = (Date.now() - started) / done;
+      const mem = app.getAppMetrics().map((m) => `${m.type}:${Math.round((m.memory?.workingSetSize ?? 0) / 1024)}MB`).join(" ");
+      const heap = await page<{ used: number }>("({ used: Math.round((performance.memory?.usedJSHeapSize ?? 0) / 1048576) })").catch(() => ({ used: -1 }));
+      console.log(`demo: memory ${mem} · page heap ${heap.used}MB`);
       console.log(`demo: frame ${f}/${last} (${((f * 1000) / fps / 1000).toFixed(1)} s) · ${per.toFixed(0)} ms/frame · ~${(((last - f) * per) / 60000).toFixed(1)} min left`);
     }
   }
