@@ -52,14 +52,20 @@ window.__demoSceneFactory = (H, D) => {
       events: step(L(2, 1650), 900, ["properties", "library", "captions", "teaching", "jobs", "properties"]).map(([ms, id]) => [ms, () => click(tab(id))]),
     }),
 
-    language: (L) => ({
-      cursor: [[L(1, 700), ".language-switch button:first-child"], [L(1, 3300), ".language-switch button:last-child"]],
-      ring: [[L(1, 0), L(1, 4300), ".language-switch"]],
-      events: [
-        [L(1, 750), () => { click(".language-switch button:first-child"); void window.tdr.setLanguage("en"); }],
-        [L(1, 3350), () => { click(".language-switch button:last-child"); void window.tdr.setLanguage("bo"); }],
-      ],
-    }),
+    // Shows the other language, then returns to the video's own UI language.
+    language: (L) => {
+      const home = window.__demoLang ?? "bo";
+      const other = home === "en" ? "bo" : "en";
+      const btn = (lang) => `.language-switch button:${lang === "en" ? "first" : "last"}-child`;
+      return {
+        cursor: [[L(1, 700), btn(other)], [L(1, 3300), btn(home)]],
+        ring: [[L(1, 0), L(1, 4300), ".language-switch"]],
+        events: [
+          [L(1, 750), () => { click(btn(other)); void window.tdr.setLanguage(other); }],
+          [L(1, 3350), () => { click(btn(home)); void window.tdr.setLanguage(home); }],
+        ],
+      };
+    },
 
     rec_sources: (L) => ({
       cursor: [[L(0, 900), ".sidebar .nav:first-child"], [L(1, 1200), ".source-card:nth-child(1)"], [L(1, 2600), ".source-card:nth-child(2)"], [L(1, 4400), ".source-card.region"],

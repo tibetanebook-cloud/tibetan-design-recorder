@@ -36,6 +36,7 @@ export async function runDemoVideo(win: BrowserWindow, page: <T>(code: string) =
     banner: await asset("docs/images/social-preview.png"),
   };
   await page(showcaseScript.replaceAll("__SHOWCASE_DIR__", join(appRoot, "docs", "showcase").replaceAll("\\", "\\\\")));
+  await page(`window.__demoLang = ${JSON.stringify(arg("demo-lang") === "en" ? "en" : "bo")}`);
   // Scene set: the short tour (default) or the full training video.
   if (arg("demo-scenes") === "training") await page(trainingScenes);
   const showcaseDir = join(appRoot, "docs", "showcase").replaceAll("\\", "\\\\");

@@ -395,7 +395,8 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     win.setSize(1440, 900);
 
     if (process.argv.includes("--demo-video")) {
-      await hooks.setLanguage("bo");
+      // UI language of the video: Tibetan by default, --demo-lang=en for the English edition.
+      await hooks.setLanguage(process.argv.includes("--demo-lang=en") ? "en" : "bo");
       await wait(1500);
       await runDemoVideo(win, page, wait, app.getAppPath());
       return 0;
