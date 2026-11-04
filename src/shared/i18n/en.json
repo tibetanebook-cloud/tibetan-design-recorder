@@ -87,7 +87,11 @@
     "recordTypedKeys": "Also record typed text (leave off to protect passwords)",
     "systemAudioHelper": "System audio here needs the native capture helper program.",
     "inputFailed": "Some inputs could not be recorded",
+    "macScreenNeeded": "Screen recording is not allowed yet. Turn on Screen & System Audio Recording in System Settings, then restart the app.",
+    "openSettings": "Open System Settings",
     "warn": {
+      "accessibility": "clicks and shortcuts were not recorded (allow Accessibility in System Settings, then restart the app)",
+      "deniedMac": "access was blocked (allow it in System Settings, then restart the app)",
       "denied": "access was blocked (check the camera/microphone switch or Windows privacy settings)",
       "notFound": "no such device was found",
       "inUse": "the device is busy in another program",

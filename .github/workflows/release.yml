@@ -5,7 +5,8 @@
 #     (nothing is public until you press "Publish release" on GitHub).
 #   - Actions tab -> "Build installers" -> Run workflow -> builds and keeps the files as
 #     downloadable artifacts for 14 days (no release).
-# Unsigned builds (owner decision 2026-10-22); signing secrets can be added later, see docs/BUILD.md.
+# Windows is unsigned for now. Mac builds are signed and notarized once the Apple secrets are
+# set (see docs/BUILD.md); without them they get an ad-hoc signature, for testing only.
 name: Build installers
 
 on:
@@ -23,11 +24,11 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            dist: dist:win
           - os: macos-14 # Apple Silicon runner; also builds the Intel (x64) app
-            dist: dist:mac
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      MAC_SIGNED: ${{ secrets.MAC_CSC_LINK != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,11 +49,47 @@ jobs:
         if: runner.os == 'Windows'
         run: npm run smoke:l10n
 
-      - name: Build installers
-        run: npm run ${{ matrix.dist }}
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        run: npm run dist:win
         env:
           # Unsigned: stop electron-builder from looking for signing identities.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Build Mac installers (Developer ID, notarized)
+        if: runner.os == 'macOS' && env.MAC_SIGNED == 'true'
+        run: npm run dist:mac
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build Mac installers (ad-hoc signature, for testing only)
+        if: runner.os == 'macOS' && env.MAC_SIGNED != 'true'
+        run: |
+          echo "::warning::No Apple certificate secrets: this Mac build is ad-hoc signed and not notarized."
+          npm run dist:mac -- -c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false
+
+      - name: Check the Mac apps (signature, and that the app stays running)
+        if: runner.os == 'macOS'
+        run: |
+          for app in dist/mac*/*.app; do
+            echo "Checking $app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            if [ "$MAC_SIGNED" = "true" ]; then
+              spctl --assess --type execute --verbose=2 "$app"
+              xcrun stapler validate "$app"
+            fi
+          done
+          app=$(ls -d dist/mac-arm64/*.app | head -1)
+          name=$(basename "$app" .app)
+          "$app/Contents/MacOS/$name" &
+          pid=$!
+          sleep 20
+          kill -0 "$pid"
+          kill "$pid"
 
       - name: Keep the files
         uses: actions/upload-artifact@v4

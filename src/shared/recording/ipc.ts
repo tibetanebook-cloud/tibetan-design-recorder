@@ -12,6 +12,8 @@ export const REC = {
   marker: "rec:marker",
   status: "rec:status", // main -> all windows (broadcast) and invoke to read
   showBubble: "rec:show-bubble",
+  macPermissions: "rec:mac-permissions",
+  openPrivacySettings: "rec:open-privacy-settings",
   hotkeyStart: "rec:hotkey-start", // main -> recorder UI: start with current settings
   // main -> capture window
   captureBegin: "rec:capture-begin", // open inputs, create recorders (not started)

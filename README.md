@@ -41,7 +41,7 @@ Shown with the Tibetan interface (switch to English at the top right).
 | 5 | Teaching and editing tools: callouts, highlight/spotlight, blur/pixelate redaction, transitions, title templates, one-click layouts, audio tools (noise removal, leveling, EQ, compressor), auto-captions + SRT/VTT, green screen, quizzes/chapters/steps/keystrokes, library, background job queue | ✅ (offline speech-to-text and no-green-screen background removal need a model download — see Architecture) |
 | 6 | Export: MP4 (H.264/HEVC/AV1 + AAC), WebM (VP9/AV1 + Opus), GIF, MP3/WAV/M4A, every lane as its own file, In/Out range, captions burned in or as .srt, background queue with progress/cancel, batch export of project files; GPU encoding through the encoders built into Electron (no FFmpeg) | ✅ |
 | 7 | Tibetan localization review: every screen audited in Tibetan (no English left, Noto Serif Tibetan, line height ≥ 1.8, no clipped stacks), translated native dialogs and recording messages, spelling/punctuation lint, one-term-one-translation check, review spreadsheet + import tool | ✅ (146 new terms await a native speaker's review) |
-| 8 | Installers: Windows setup, macOS dmg (Apple Silicon, Intel); GitHub workflow builds them and drafts a release; licence texts shipped; double-clicking a `.tdrec` opens it | ✅ (unsigned; Windows tested here, macOS built in the workflow) |
+| 8 | Installers: Windows setup, macOS dmg (Apple Silicon, Intel); GitHub workflow builds them and drafts a release; licence texts shipped; double-clicking a `.tdrec` opens it | ✅ (Windows unsigned and tested here; macOS built in the workflow, signed and notarized once the Apple secrets are set) |
 
 ## Language
 

@@ -12,7 +12,7 @@
  * passwords and private text are not recorded. Typed text is an opt-in setting.
  * Presses of our own recording hotkeys are left out.
  */
-import { screen } from "electron";
+import { screen, systemPreferences } from "electron";
 import { promises as fs } from "node:fs";
 import type { Rect } from "@shared/project/schema";
 import type { RecordingClock } from "@shared/recording/clock";
@@ -60,6 +60,8 @@ export class CursorRecorder {
   private readonly area: Rect;
   private writing: Promise<void> = Promise.resolve();
   counts = { samples: 0, events: 0 };
+  /** Why clicks and keys are not being recorded; the cursor path and the take carry on. */
+  hookWarning: string | null = null;
 
   constructor(
     private readonly path: string,
@@ -100,6 +102,11 @@ export class CursorRecorder {
   private startHook(): void {
     const hook = loadHook();
     if (!hook) return;
+    // macOS: passing true shows the system's Accessibility prompt; it applies after a restart.
+    if (process.platform === "darwin" && !systemPreferences.isTrustedAccessibilityClient(true)) {
+      this.hookWarning = "clicks: Accessibility permission is not granted";
+      return;
+    }
     const { uIOhook, UiohookKey } = hook;
     this.keyNames = Object.fromEntries(Object.entries(UiohookKey).map(([name, code]) => [code as number, name]));
     // uiohook reports physical pixels on Windows; convert to DIP like the sampler.
@@ -121,8 +128,13 @@ export class CursorRecorder {
       if (!this.recordTypedKeys && !isShortcut && !SPECIAL_KEYS.has(key)) return;
       this.event({ t: 0, type: "key", key, mods });
     });
-    uIOhook.start();
-    this.hookStarted = true;
+    try {
+      uIOhook.start();
+      this.hookStarted = true;
+    } catch (error) {
+      uIOhook.removeAllListeners();
+      this.hookWarning = `clicks: ${String(error)}`;
+    }
   }
 
   private event(e: InputEvent): void {

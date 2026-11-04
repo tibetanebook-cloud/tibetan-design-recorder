@@ -85,6 +85,8 @@ const api = {
     addMarker: (): Promise<void> => ipcRenderer.invoke(REC.marker),
     status: (): Promise<RecorderStatus> => ipcRenderer.invoke(REC.status),
     showBubble: (deviceId: string | null): Promise<void> => ipcRenderer.invoke(REC.showBubble, deviceId),
+    macPermissions: (): Promise<{ screen: string } | null> => ipcRenderer.invoke(REC.macPermissions),
+    openPrivacySettings: (pane: "screen" | "accessibility"): Promise<void> => ipcRenderer.invoke(REC.openPrivacySettings, pane),
     onStatus: (listener: (s: RecorderStatus) => void) => on(REC.status, listener),
     onTakeFinished: (listener: (take: TakeManifest, dir: string) => void) =>
       on<[TakeManifest, string]>(REC.takeFinished, (take, dir) => listener(take, dir)),

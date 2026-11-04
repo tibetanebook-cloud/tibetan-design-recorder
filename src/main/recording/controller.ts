@@ -12,7 +12,7 @@
  * The take clock lives here. Every recorder reports the wall time of its start
  * event; the difference to the take start becomes that file's startOffsetMs.
  */
-import { app, BrowserWindow, desktopCapturer, globalShortcut, ipcMain, screen, session } from "electron";
+import { app, BrowserWindow, desktopCapturer, globalShortcut, ipcMain, screen, session, shell, systemPreferences } from "electron";
 import { join } from "node:path";
 import { RecordingClock, wallNow } from "@shared/recording/clock";
 import { REC, type CaptureBeginPayload, type CaptureDonePayload, type TrackStartedPayload } from "@shared/recording/ipc";
@@ -78,6 +78,8 @@ export class RecordingController {
     ipcMain.handle(REC.marker, () => this.addMarker());
     ipcMain.handle(REC.status, () => this.status);
     ipcMain.handle(REC.showBubble, (_e, deviceId: string | null) => this.showBubble(deviceId));
+    ipcMain.handle(REC.macPermissions, () => this.macPermissions());
+    ipcMain.handle(REC.openPrivacySettings, (_e, pane: unknown) => this.openPrivacySettings(pane));
 
     ipcMain.on(REC.trackStarted, (e, p: TrackStartedPayload) => {
       if (!this.fromCapture(e) || !this.writer) return;
@@ -117,6 +119,22 @@ export class RecordingController {
         callback(first ? { video: first, audio: "loopback" } : {});
       });
     });
+  }
+
+  // ---------- macOS permissions ----------
+
+  /** macOS: asks for camera and microphone once; returns the screen permission. Null elsewhere. */
+  private async macPermissions(): Promise<{ screen: string } | null> {
+    if (process.platform !== "darwin") return null;
+    await systemPreferences.askForMediaAccess("camera");
+    await systemPreferences.askForMediaAccess("microphone");
+    return { screen: systemPreferences.getMediaAccessStatus("screen") };
+  }
+
+  private async openPrivacySettings(pane: unknown): Promise<void> {
+    if (process.platform !== "darwin") return;
+    const anchor = pane === "accessibility" ? "Privacy_Accessibility" : "Privacy_ScreenCapture";
+    await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${anchor}`);
   }
 
   // ---------- sources ----------
@@ -300,6 +318,7 @@ export class RecordingController {
       const region = settings.screen.kind === "region" ? settings.screen.region : undefined;
       this.cursor = new CursorRecorder(join(this.writer.dir, CURSOR_FILE), this.clock, this.display.bounds, region, settings.cursor.recordTypedKeys);
       await this.cursor.start();
+      if (this.cursor.hookWarning) this.setStatus({ warnings: [...(this.status.warnings ?? []), this.cursor.hookWarning] });
     }
     this.captureWin!.webContents.send(REC.captureGo);
     this.setStatus({ phase: "recording", countdown: undefined });

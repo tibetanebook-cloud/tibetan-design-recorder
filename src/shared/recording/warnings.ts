@@ -3,7 +3,7 @@
  * split into the input (translated lane name), a plain reason (translated) and
  * the original detail (kept in English, for support).
  */
-export type WarningReason = "denied" | "notFound" | "inUse" | "noData" | "noStart" | "noSystemAudio" | "failed";
+export type WarningReason = "accessibility" | "denied" | "notFound" | "inUse" | "noData" | "noStart" | "noSystemAudio" | "failed";
 
 export interface RecordingWarning {
   input?: "screen" | "webcam" | "mic" | "system";
@@ -15,7 +15,9 @@ export function describeWarning(raw: string): RecordingWarning {
   const m = /^(screen|webcam|mic|system):\s*(.*)$/s.exec(raw.trim());
   const input = m?.[1] as RecordingWarning["input"];
   const detail = (m?.[2] ?? raw).trim();
-  const reason: WarningReason = /NotAllowedError|Permission denied/i.test(detail)
+  const reason: WarningReason = /Accessibility|assistive devices/i.test(detail)
+    ? "accessibility"
+    : /NotAllowedError|Permission denied/i.test(detail)
     ? "denied"
     : /NotFoundError|Requested device not found/i.test(detail)
       ? "notFound"

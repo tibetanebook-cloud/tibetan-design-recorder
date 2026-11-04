@@ -21,6 +21,7 @@ export function Recorder() {
   const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
   const [mics, setMics] = useState<MediaDeviceInfo[]>([]);
   const [status, setStatus] = useState<RecorderStatus>({ phase: "idle", elapsedMs: 0 });
+  const [screenBlocked, setScreenBlocked] = useState(false);
 
   const refresh = useCallback(async () => {
     const [srcs, disps] = await Promise.all([window.tdr.rec.listSources(), window.tdr.rec.listDisplays()]);
@@ -31,6 +32,9 @@ export function Recorder() {
     const current = useRecorderSettings.getState().settings;
     if (firstDisplay && !srcs.some((s) => s.id === current.screen.sourceId))
       update({ screen: { ...current.screen, kind: "display", sourceId: firstDisplay.id, displayId: firstDisplay.displayId ?? disps[0]?.id ?? "", region: undefined } });
+    // macOS: listing sources above triggers the screen prompt; this asks for camera and mic.
+    const macPermissions = await window.tdr.rec.macPermissions();
+    setScreenBlocked(!!macPermissions && macPermissions.screen !== "granted");
     // Ask once so device labels are available, then list devices.
     try {
       const probe = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -158,6 +162,12 @@ export function Recorder() {
           <span>{t("record.cancel")}: <kbd lang="en">{hotkeyLabel(RECORDING_HOTKEYS.cancel)}</kbd></span>
           <span>{t("insert.marker")}: <kbd lang="en">{hotkeyLabel(RECORDING_HOTKEYS.marker)}</kbd></span>
         </div>
+        {screenBlocked && (
+          <div className="rec-error">
+            ⚠ {t("record.macScreenNeeded")}{" "}
+            <button onClick={() => void window.tdr.rec.openPrivacySettings("screen")}>{t("record.openSettings")}</button>
+          </div>
+        )}
         {status.phase === "error" && <div className="rec-error">{t("status.error")}: <span lang="en">{status.error}</span></div>}
         {!!status.warnings?.length && (
           <div className="rec-error">
@@ -165,8 +175,11 @@ export function Recorder() {
             {status.warnings.map(describeWarning).map((w, i) => (
               <div key={i} className="rec-warning">
                 {w.input && <b>{t(`track.${w.input}`)}: </b>}
-                {t(`record.warn.${w.reason}`)}
+                {t(w.reason === "denied" && window.tdr.platform === "darwin" ? "record.warn.deniedMac" : `record.warn.${w.reason}`)}
                 <small lang="en" data-l10n-skip> ({w.detail})</small>
+                {w.reason === "accessibility" && (
+                  <button onClick={() => void window.tdr.rec.openPrivacySettings("accessibility")}>{t("record.openSettings")}</button>
+                )}
               </div>
             ))}
           </div>

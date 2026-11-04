@@ -78,10 +78,12 @@ mac:
   category: public.app-category.video
   icon: build/icon.png
   minimumSystemVersion: "12.0"
-  # Unsigned for now. With a Developer ID: provide CSC_LINK/CSC_KEY_PASSWORD, set
-  # hardenedRuntime: true (entitlements below) and notarize (see docs/BUILD.md).
-  identity: null
-  hardenedRuntime: false
+  # Signed with the Developer ID certificate in CSC_LINK/CSC_KEY_PASSWORD and notarized when
+  # APPLE_ID/APPLE_APP_SPECIFIC_PASSWORD/APPLE_TEAM_ID are set (see docs/BUILD.md).
+  # Never use `identity: null`: the fuses above edit the Electron Framework, and an Apple
+  # Silicon Mac refuses the app unless it is signed again afterwards. Without a certificate
+  # build with: -c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false
+  hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

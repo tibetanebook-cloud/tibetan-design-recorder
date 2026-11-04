@@ -82,7 +82,25 @@ Repository: https://github.com/tibetanebook-cloud/tibetan-design-recorder (publi
 Change `"version"` in `package.json` (e.g. `0.2.0`) and tag the same (`v0.2.0`). File names,
 the About box and the Windows Apps list use it.
 
-### Code signing (not set up yet: owner decision 2026-10-22)
+### Mac signing and notarization
+
+`.github/workflows/release.yml` signs and notarizes the Mac apps when these GitHub repository
+secrets exist (Settings → Secrets and variables → Actions):
+
+| Secret | What it is |
+|---|---|
+| `MAC_CSC_LINK` | The **Developer ID Application** certificate exported as a `.p12`, base64-encoded |
+| `MAC_CSC_KEY_PASSWORD` | The password chosen when exporting the `.p12` |
+| `APPLE_ID` | The Apple Account email of the developer account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password from account.apple.com |
+| `APPLE_TEAM_ID` | The 10-character Team ID from developer.apple.com → Membership |
+
+Without `MAC_CSC_LINK` the workflow still builds, with an ad-hoc signature and a warning. That
+build is for testing only. Do not build with `identity: null`: the app's fuses edit the Electron
+Framework, and Apple Silicon Macs refuse the app unless it is signed again afterwards. The
+workflow checks each signature and starts the Apple Silicon app before keeping the files.
+
+### Windows signing (not set up yet: owner decision 2026-10-22)
 
 Unsigned builds work, but:
 
@@ -91,19 +109,14 @@ Unsigned builds work, but:
   Windows 11 PCs, and on the development PC), unsigned programs can be blocked outright.
   The fix is signing, not turning Smart App Control off (it cannot be turned back on
   without reinstalling Windows).
-- **macOS:** Gatekeeper requires *System Settings → Privacy & Security → Open Anyway* once.
 
-To sign later, no code changes are needed, only secrets in the GitHub repository:
+To sign later:
 
 - **Windows** — either a code-signing certificate (`CSC_LINK` = base64 .pfx,
   `CSC_KEY_PASSWORD`), or Microsoft's *Artifact Signing* (formerly *Trusted Signing*; a monthly
   subscription, cheapest route to a trusted Windows signature) via electron-builder's
   `win.azureSignOptions`.
-- **macOS** — an Apple Developer ID (Apple Developer Program): `CSC_LINK`/`CSC_KEY_PASSWORD`
-  for the certificate, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for
-  notarization; then in `electron-builder.yml` remove `identity: null`, set
-  `hardenedRuntime: true` and add `notarize: true` (entitlements are in `build/entitlements.mac.plist`).
-- Remove `CSC_IDENTITY_AUTO_DISCOVERY: "false"` from the workflow.
+- Remove `CSC_IDENTITY_AUTO_DISCOVERY: "false"` from the Windows build step in the workflow.
 
 ## Sample extension
 

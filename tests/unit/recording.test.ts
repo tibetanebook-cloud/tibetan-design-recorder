@@ -146,5 +146,7 @@ describe("recording warnings for the UI", () => {
     expect(describeWarning("system: no system audio track was provided")).toMatchObject({ input: "system", reason: "noSystemAudio" });
     expect(describeWarning("NotReadableError: Could not start video source")).toMatchObject({ input: undefined, reason: "inUse" });
     expect(describeWarning("something odd").reason).toBe("failed");
+    expect(describeWarning("clicks: Accessibility permission is not granted")).toMatchObject({ input: undefined, reason: "accessibility" });
+    expect(describeWarning("clicks: Error: Failed to enable access for assistive devices.").reason).toBe("accessibility");
   });
 });

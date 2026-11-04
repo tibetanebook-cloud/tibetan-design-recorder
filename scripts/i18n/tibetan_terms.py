@@ -164,8 +164,10 @@ Research Center, 2007).
 - **C** — built from dictionary terms ({counts['C']})
 - **N** — not in the dictionary; needs a native speaker's review ({counts['N']})
 
-Spelling fixes applied to the dictionary's Word text layer: stray spaces inside words
-removed (e.g. ཁ་འ བྱེད → ཁ་འབྱེད); སྒེའྲ་ཁུང → སྒེའུ་ཁུང (window); སྒྲབ → སྒྲུབ (custom, progress).
+Checked against the corrected dictionary text (rebuilt from the printed book, 2026-10-31,
+`English_Tibetan_Chinese_IT_Dictionary_CORRECTED.docx`). Spellings changed from the earlier
+Word file: རྒྱབ་རྫོངས → རྒྱབ་ལྗོངས (background); སྦེལ → སྦྲེལ (link, online); རྣར → མྱུར (shortcut, fast);
+རྫོན → སྔོན (preset, preview); ཆུ་སྟར → རུ་སྟར (queue); ས་རྒྱག → ཟྭ་རྒྱག (lock).
 The app name ནང་ཆེན་བཀྲིས་གློག་ཀླད་མཐོང་རིས་འཛིན་ཆས། was chosen by the owner.
 
 To review: open `tibetan-review.csv` (Excel or LibreOffice), fill in `reviewer_tibetan`
