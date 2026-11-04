@@ -107,7 +107,10 @@ export class RecordingController {
     //  - from the setup screen: Windows loopback for the system-audio meter (the page
     //    stops the accompanying screen track immediately).
     session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-      const fromCapture = !!this.captureWin && request.frame?.top?.processId === this.captureWin.webContents.getOSProcessId();
+      // processId is Chromium's own id (not the OS pid), and windows can share a process, so compare the frame.
+      const top = request.frame?.top;
+      const captureFrame = this.captureWin?.webContents.mainFrame;
+      const fromCapture = !!top && !!captureFrame && top.processId === captureFrame.processId && top.routingId === captureFrame.routingId;
       void desktopCapturer.getSources({ types: ["screen", "window"], thumbnailSize: { width: 0, height: 0 } }).then((sources) => {
         if (fromCapture) {
           const source = sources.find((s) => s.id === this.pendingScreenSource);
