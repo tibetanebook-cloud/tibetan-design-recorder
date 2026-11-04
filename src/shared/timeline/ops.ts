@@ -37,7 +37,7 @@ export function withLinked(p: Project, ids: Iterable<string>): Set<string> {
 
 /** Longest timeline length a clip may have from its current in-point (Infinity for generated content). */
 export function maxDurationMs(p: Project, clip: Clip): number {
-  if (clip.content.type !== "media" || !clip.mediaId) return Infinity;
+  if (clip.content.type !== "media" || !clip.mediaId || clip.freeze) return Infinity;
   const media = p.media.find((m) => m.id === clip.mediaId);
   if (!media || media.kind === "image") return Infinity;
   return Math.max(0, (media.durationMs - clip.sourceInMs) / clip.speed);
@@ -157,7 +157,7 @@ export function trimClip(p: Project, id: string, edge: "start" | "end", timeMs: 
   for (const c of group) {
     const { prevEnd, nextStart } = neighbours(p, c.trackId, groupIds, c.startMs, clipEnd(c));
     if (edge === "start") {
-      delta = Math.max(delta, prevEnd - c.startMs, -c.sourceInMs / c.speed); // not before the neighbour or source start
+      delta = Math.max(delta, prevEnd - c.startMs, c.freeze ? -Infinity : -c.sourceInMs / c.speed); // not before the neighbour or source start
       delta = Math.min(delta, c.durationMs - MIN_CLIP_MS);
     } else {
       delta = Math.min(delta, nextStart - clipEnd(c), maxDurationMs(p, c) - c.durationMs);
@@ -170,7 +170,7 @@ export function trimClip(p: Project, id: string, edge: "start" | "end", timeMs: 
     changed.set(
       c.id,
       edge === "start"
-        ? { ...c, startMs: c.startMs + delta, durationMs: c.durationMs - delta, sourceInMs: c.sourceInMs + delta * c.speed }
+        ? { ...c, startMs: c.startMs + delta, durationMs: c.durationMs - delta, sourceInMs: c.freeze ? c.sourceInMs : c.sourceInMs + delta * c.speed }
         : { ...c, durationMs: c.durationMs + delta },
     );
   }
@@ -209,9 +209,12 @@ export function splitAt(p: Project, timeMs: number, ids?: Iterable<string>): Pro
       id: newId("clp"),
       startMs: timeMs,
       durationMs: c.durationMs - left,
-      sourceInMs: c.sourceInMs + left * c.speed,
+      sourceInMs: c.freeze ? c.sourceInMs : c.sourceInMs + left * c.speed,
       fadeInMs: 0,
       linkGroup: group,
+      // Motion is timed from the clip's start: the right half carries on from where the split is.
+      keyframes: c.keyframes?.filter((k) => k.t >= left).map((k) => ({ ...k, t: k.t - left })),
+      volumePoints: c.volumePoints?.filter((v) => v.t >= left).map((v) => ({ ...v, t: v.t - left })),
     });
   }
   return { ...p, clips };
@@ -306,7 +309,7 @@ export function unlinkClips(p: Project, ids: Iterable<string>): Project {
 // ---------- properties ----------
 
 export type ClipPatch = Partial<
-  Pick<Clip, "opacity" | "volume" | "fadeInMs" | "fadeOutMs" | "muted" | "hidden" | "locked" | "frame" | "crop" | "content">
+  Pick<Clip, "opacity" | "volume" | "fadeInMs" | "fadeOutMs" | "muted" | "hidden" | "locked" | "frame" | "crop" | "content" | "keyframes" | "behavior" | "fx" | "volumePoints">
 > & { speed?: number };
 
 /**

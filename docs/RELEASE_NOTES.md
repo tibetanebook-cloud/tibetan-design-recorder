@@ -1,5 +1,53 @@
 # Release notes
 
+## Next version (not released yet)
+
+**Much faster on Windows and Mac**
+- Moving the playhead in a new recording is about 40 times faster: recordings now contain a
+  picture the editor can jump to every second (measured on a 90 s take: 3.7 s per jump before,
+  about 0.09 s now). Recordings made with older versions keep their old speed.
+- The first press of Play no longer freezes the app for a second, and playback stays at a
+  steady 60 frames per second with no pauses at cuts.
+- Only the players in use stay open (3 instead of 120 in a project of 120 clips).
+- Playing, dragging and scrubbing no longer redraw the whole window on every frame.
+- Faster start: fonts are read only when a project uses them, and the small recording windows
+  no longer load the whole editor.
+
+**Animation**
+- Keyframes on any picture clip: position, size, rotation and opacity, with easing.
+- Behaviours: ready-made entrances, exits and motion while on screen (fly in, pop, spin, drop,
+  fade, pulse, float, shake, sway).
+
+**Visual effects on any video or image**
+- Flip, rounded corners, shadow, border, colour looks and adjustments, remove a colour.
+- Recordings and images can be moved and resized directly on the preview.
+
+**Editing**
+- Hold a frame, delete an In–Out range across all lanes, insert space, close gaps on a lane.
+- Copy and paste effects between clips.
+- Cut a spoken sentence out of the video from the captions list.
+- Triangle, star, hexagon and ellipse shapes; arrows and shapes that sketch themselves on screen.
+
+**Pointer** — highlight, spotlight and magnifier that follow the pointer.
+
+**Audio**
+- Remove long silences in one click.
+- Lower the music under the voice automatically; volume over time on any sound clip.
+- Record narration from the microphone while the video plays.
+
+**Themes and files**
+- Themes: one click sets the colours of all titles, callouts, steps and captions.
+- Files already in the project are listed in the library, to place them again.
+- Save the current frame as a picture; package a project and all its files into one folder.
+
+**Fixes** — the About box showed the wrong version number. Automatic tests no longer leave
+recordings in the Videos folder. Starting a recording can no longer hang on an input that does
+not answer, and the screen you choose is the one that gets recorded.
+
+**Tibetan** — every new control is translated; the new terms are on the review list
+(docs/i18n/tibetan-review.csv) for a native speaker. Spellings follow the corrected IT dictionary
+on Windows and Mac alike.
+
 ## 0.2.3 — free fonts included (2026-10-23)
 
 - **Free, open-source fonts come with the app** (SIL Open Font License), so every user has them:

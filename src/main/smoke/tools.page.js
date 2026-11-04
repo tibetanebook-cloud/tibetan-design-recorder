@@ -165,10 +165,12 @@
     check("noise removal keeps the voice/tone", Math.abs(db(off.tone, on.tone)) < 3, `${db(on.tone, off.tone).toFixed(2)} dB change`);
 
     // Live preview chain is in place for the mic clip.
-    st().setPlayhead(200);
+    st().setPlayhead(micClip.startMs + 200);
     st().setPlaying(true);
     await sleep(1500);
-    const live = T.playback.current.fxStatus(micClip.id);
+    // The clip under the playhead now (a split recording has several).
+    const liveClip = P().clips.find((c) => c.trackId === micClip.trackId && st().playheadMs >= c.startMs && st().playheadMs < c.startMs + c.durationMs);
+    const live = liveClip && T.playback.current.fxStatus(liveClip.id);
     st().setPlaying(false);
     await sleep(200);
     check("audio tools are in the live playback chain", live && live.denoise, JSON.stringify(live));

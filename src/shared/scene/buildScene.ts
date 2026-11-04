@@ -16,6 +16,7 @@ import type { CursorTrack } from "../recording/types";
 import { cursorStateAt, type KeyChip } from "../effects/cursor";
 import { cameraAt, type Camera } from "../effects/zoom";
 import { placeMedia, sourceToStage } from "./placement";
+import { clipMotionAt, type ClipMotion } from "../effects/animate";
 
 export interface SceneLayer {
   clipId: string;
@@ -49,6 +50,14 @@ export interface SceneLayer {
   chroma?: WebcamLayout["chroma"];
   /** Webcam shape, border and look (beauty + colour). `shaped` = cut to the shape (bubble, side by side). */
   webcam?: { shaped: boolean; shape: WebcamShape; roundness: number; border: WebcamBorder; look: WebcamLook };
+  /** Keyframes and behaviours at this moment (opacity already folded in). */
+  motion?: ClipMotion;
+  flipH?: boolean;
+  flipV?: boolean;
+  /** Colour adjustments of a video or image clip. */
+  look?: WebcamLook;
+  /** Plain border of a video or image clip. */
+  border?: { width: number; color: string };
 }
 
 export interface SceneCaption {
@@ -98,6 +107,10 @@ export interface SceneCursor {
   rings: ClickRing[];
   ringColor: string;
   keys: KeyChip[];
+  /** Pointer effects (sizes in stage pixels). */
+  highlight?: { radius: number; color: string; alpha: number };
+  spotlight?: { radius: number; dim: number };
+  magnify?: { radius: number; scale: number };
 }
 
 export interface DeviceFrameInfo {
@@ -183,6 +196,7 @@ export function isClipActive(clip: Clip, timeMs: number): boolean {
 
 /** Source-media time for a timeline time, respecting the clip's in-point and speed. */
 export function sourceTime(clip: Clip, timeMs: number): number {
+  if (clip.freeze) return clip.sourceInMs;
   return clip.sourceInMs + (timeMs - clip.startMs) * clip.speed;
 }
 
@@ -309,6 +323,9 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
       const transition = transitionAt(clip, timeMs);
       const localMs = timeMs - clip.startMs;
       const c = clip.content;
+      const motion = clip.keyframes?.length || clip.behavior ? clipMotionAt(clip, localMs, { width: W, height: H }) : undefined;
+      const fx = clip.fx;
+      if (fx?.radius) radius = Math.max(radius, fx.radius);
       const base: SceneLayer = {
         clipId: clip.id,
         trackId: lane.id,
@@ -317,15 +334,20 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
         sourceTimeMs: sourceTime(clip, timeMs),
         frame,
         crop: clip.crop,
-        opacity: clip.opacity * lane.opacity * fadeAt(clip, timeMs) * alpha,
+        opacity: clip.opacity * lane.opacity * fadeAt(clip, timeMs) * alpha * (motion?.opacity ?? 1),
         cornerRadius: radius,
-        shadow: isScreen ? (screen.device ? 0 : canvas.shadow) : isWebcam && lay.layout === "bubble" ? project.webcam.shadow * 2 : 0,
+        shadow: fx?.shadow ? fx.shadow : isScreen ? (screen.device ? 0 : canvas.shadow) : isWebcam && lay.layout === "bubble" ? project.webcam.shadow * 2 : 0,
         fit: isWebcam ? "cover" : "contain",
         inCamera: isScreen || IN_CAMERA_CONTENT.has(c.type),
         mirror: isWebcam && project.webcam.mirror,
         squircle: isScreen,
         localMs,
         transition: NO_TRANSITION,
+        motion,
+        flipH: fx?.flipH,
+        flipV: fx?.flipV,
+        look: fx?.look,
+        border: fx?.border.width ? fx.border : undefined,
       };
       // Dissolve: hold the previous clip's last frame underneath while this one fades in.
       const partner = transition.alpha < 1 ? dissolvePartner(laneClips, clip) : undefined;
@@ -339,7 +361,7 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
         transition,
         textAnim: c.type === "text" || c.type === "callout" ? textAnimationAt(c.text, c.type === "text" ? c.animation : "pop", localMs) : undefined,
         stepNumber: c.type === "step" ? steps.get(clip.id) : undefined,
-        chroma: isWebcam && project.webcam.chroma.enabled ? project.webcam.chroma : undefined,
+        chroma: fx?.chroma?.enabled ? fx.chroma : isWebcam && project.webcam.chroma.enabled ? project.webcam.chroma : undefined,
         webcam: isWebcam ? webcamStyle(project, lay.layout, clip.frame ?? frame) : undefined,
       });
     }
@@ -380,6 +402,9 @@ export function buildScene(project: Project, timeMs: number, ctx: SceneContext =
         rings: style.clickEffect === "echo" ? rings.flatMap((r) => [r, { ...r, radius: r.radius * 0.6, alpha: r.alpha * 0.6 }]) : rings,
         ringColor: style.clickColor,
         keys: state.keys,
+        highlight: style.highlight?.enabled ? { radius: size * style.highlight.size, color: style.highlight.color, alpha: style.highlight.opacity } : undefined,
+        spotlight: style.spotlight?.enabled ? { radius: size * style.spotlight.size, dim: style.spotlight.dim } : undefined,
+        magnify: style.magnify?.enabled ? { radius: size * style.magnify.size, scale: style.magnify.scale } : undefined,
       };
     }
   }

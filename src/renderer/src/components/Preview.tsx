@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import type { Project } from "@shared/project/schema";
+import type { Project, Rect } from "@shared/project/schema";
 import { buildScene } from "@shared/scene/buildScene";
 import { placeMedia, sourceToStage } from "@shared/scene/placement";
 import { depthScale } from "@shared/effects/zoom";
@@ -11,7 +11,6 @@ import { Compositor, TIBETAN_FONT } from "../compositor/Compositor";
 import { PlaybackEngine } from "../playback/engine";
 import { ensureProjectAssets, onAssetsChanged, sceneContext } from "../playback/assets";
 import { useEditor } from "../store";
-import { preloadBundledFonts } from "../bundledFonts";
 import { hitText, InlineTextEditor, type InlineEdit } from "./InlineTextEditor";
 
 /** Shared with the smoke test so it can read rendered pixels. */
@@ -29,7 +28,6 @@ function viewProject(): Project {
 export function Preview() {
   const host = useRef<HTMLDivElement>(null);
   const project = useEditor((s) => s.history.present);
-  const playheadMs = useEditor((s) => s.playheadMs);
   const playing = useEditor((s) => s.playing);
   const zoomId = useEditor((s) => s.selectedZoomId);
   const [ready, setReady] = useState(false);
@@ -70,16 +68,19 @@ export function Preview() {
     let initialized = false;
     void (async () => {
       // Pixi rasterizes text once; make sure the Tibetan font is ready first.
-      await Promise.all([document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད"), preloadBundledFonts()]);
+      await document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད");
       const p = useEditor.getState().history.present;
+      compositor.onlyNewVideoFrames = true;
       await compositor.init(p.canvas.width, p.canvas.height, canvas);
       if (cancelled) return compositor.destroy();
-      compositor.onlyNewVideoFrames = true;
       initialized = true;
       host.current?.appendChild(canvas);
       previewCompositor.current = compositor;
       playback.current = engine;
       setReady(true);
+      // Opening the sound device blocks for up to a second on Windows: do it now, while
+      // nothing is happening, rather than freezing the app on the first press of Play.
+      setTimeout(() => !cancelled && engine.warmUp(), 300);
     })();
     const offAssets = onAssetsChanged(() => setAssetTick((n) => n + 1));
     // Draw at the size the preview is shown (device pixels), not always full 1080p/4K:
@@ -116,10 +117,16 @@ export function Preview() {
   }, [playing, ready]);
 
   // Paused: draw the exact frame whenever the playhead, project, selection or assets change.
+  // The playhead is watched here rather than in a subscription of this component, so playback
+  // does not redraw the preview's React tree on every frame.
   useEffect(() => {
     if (!ready || playing) return;
-    void playback.current?.requestFrame(playheadMs);
-  }, [project, playheadMs, playing, ready, zoomId, assetTick]);
+    const draw = () => void playback.current?.requestFrame(useEditor.getState().playheadMs);
+    draw();
+    return useEditor.subscribe((s, prev) => {
+      if (s.playheadMs !== prev.playheadMs) draw();
+    });
+  }, [project, playing, ready, zoomId, assetTick]);
 
   return (
     <div className="preview-stage">
@@ -128,7 +135,7 @@ export function Preview() {
         {!zoomId && !playing && !inline && <FrameOverlay project={project} />}
         {inline && !playing && <InlineTextEditor edit={inline} project={project} onDone={() => setInline(null)} />}
       </div>
-      <LayoutBar project={project} playheadMs={playheadMs} />
+      <LayoutBar />
     </div>
   );
 }
@@ -159,9 +166,9 @@ const LAYOUTS = [
 ] as const;
 
 /** One-click layouts: switch from the playhead onward (the change morphs smoothly). */
-function LayoutBar({ project, playheadMs }: { project: Project; playheadMs: number }) {
+function LayoutBar() {
   const t = useEditor((s) => s.t);
-  const current = layoutAt(project, playheadMs).layout;
+  const current = useEditor((s) => layoutAt(s.history.present, s.playheadMs).layout);
   return (
     <div className="layout-bar" role="toolbar" aria-label={t("effects.layouts")}>
       {LAYOUTS.map((l) => (
@@ -176,6 +183,8 @@ function LayoutBar({ project, playheadMs }: { project: Project; playheadMs: numb
 
 /** Content types moved/resized on the canvas (frame in canvas pixels). */
 const FRAMED = new Set(["text", "callout", "highlight", "spotlight", "redact", "step", "shape", "media", "solid"]);
+/** Lanes whose clips can be moved and resized on the canvas. */
+const MOVABLE_LANES = new Set(["annotation", "screen", "webcam", "video", "image"]);
 
 /**
  * Dashed box with a resize handle around the selected annotation; drag to move.
@@ -188,14 +197,17 @@ function FrameOverlay({ project }: { project: Project }) {
   if (selection.length !== 1) return null;
   const clip = project.clips.find((c) => c.id === selection[0]);
   const lane = clip && project.tracks.find((tr) => tr.id === clip.trackId);
-  if (!clip || !lane || lane.kind !== "annotation" || !FRAMED.has(clip.content.type) || !clip.frame) return null;
+  if (!clip || !lane || !MOVABLE_LANES.has(lane.kind) || !FRAMED.has(clip.content.type)) return null;
   if (clip.content.type === "shape" && (clip.content.shape === "arrow" || clip.content.shape === "line")) return null;
   const W = project.canvas.width, H = project.canvas.height;
   const scene = buildScene(project, Math.max(clip.startMs, Math.min(playheadMs, clip.startMs + clip.durationMs - 1)), sceneContext());
   const layer = scene.layers.find((l) => l.clipId === clip.id);
   const cam = layer?.inCamera ? scene.camera : { scale: 1, cx: W / 2, cy: H / 2 };
   const toView = (x: number, y: number) => ({ x: (x - cam.cx) * cam.scale + W / 2, y: (y - cam.cy) * cam.scale + H / 2 });
-  const f = clip.frame;
+  // A recording has no frame of its own until it is moved: start from where it is drawn now.
+  const shownFrame = clip.frame ?? layer?.frame;
+  if (!shownFrame) return null;
+  const f: Rect = shownFrame;
   const a = toView(f.x, f.y);
   const pct = (v: number, of: number) => `${(v / of) * 100}%`;
   const content = clip.content;

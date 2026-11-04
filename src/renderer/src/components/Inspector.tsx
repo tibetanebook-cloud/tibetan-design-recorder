@@ -11,6 +11,7 @@ import { formatTimecode } from "../util/time";
 import { CameraSettings, CursorPanel, FramePanel, WebcamPanel, ZoomPanel } from "./StylePanels";
 import { AudioFxPanel, ContentProps, GreenScreenPanel, TextStyleProps, TransitionProps } from "./ToolPanels";
 import { WebcamLookPanel, WebcamShapePanel } from "./WebcamStyle";
+import { MotionPanel, PictureFxPanel, VolumePointsPanel } from "./MotionPanels";
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
 
@@ -246,6 +247,9 @@ function ClipInspector({ project, clips }: { project: Project; clips: Clip[] }) 
       {clip.content.type === "shape" && <ShapeProps clip={clip} ids={ids} />}
       <ContentProps clip={clip} ids={ids} />
       {visual && track.kind !== "caption" && <TransitionProps clips={clips} />}
+      {visual && track.kind !== "caption" && <MotionPanel clip={clip} ids={ids} />}
+      {visual && clip.content.type === "media" && <PictureFxPanel clip={clip} ids={ids} />}
+      {audio && <VolumePointsPanel clip={clip} ids={ids} />}
 
       <Section title={t("inspector.clip")}>
         {audio && <Check label={t("track.mute")} checked={clip.muted} onChange={(v) => edit("track.mute", setProps({ muted: v }))} />}
@@ -271,6 +275,7 @@ function ShapeProps({ clip, ids }: { clip: Clip; ids: string[] }) {
         <input type="color" value={content.color} onChange={(e) => set({ color: e.target.value })} />
       </label>
       <NumberField label={t("shape.stroke")} value={content.strokeWidth} min={0} onCommit={(v) => set({ strokeWidth: Math.max(0, v) })} />
+      {content.shape !== "rect" && <NumberField label={t("shape.sketch")} value={(content.drawOnMs ?? 0) / 1000} step={0.1} min={0} suffix={t("inspector.seconds")} onCommit={(v) => set({ drawOnMs: Math.max(0, v * 1000) || undefined })} />}
       {!line && <Check label={t("shape.fill")} checked={!!content.fill} onChange={(on) => set({ fill: on ? `${content.color}55` : undefined })} />}
       {line && (
         <div className="prop-grid">

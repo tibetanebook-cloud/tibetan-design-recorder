@@ -28,6 +28,12 @@ const api = {
   openText: (name: string, extensions: string[]): Promise<{ path: string; text: string } | null> => ipcRenderer.invoke(IPC.textOpen, name, extensions),
   /** Save text to a file chosen by the user; returns the path or null. */
   saveText: (defaultName: string, extensions: string[], text: string): Promise<string | null> => ipcRenderer.invoke(IPC.textSave, defaultName, extensions, text),
+  /** Save bytes (a PNG frame) to a file chosen by the user; returns the path or null. */
+  saveBinary: (defaultName: string, extensions: string[], data: Uint8Array): Promise<string | null> => ipcRenderer.invoke(IPC.binarySave, defaultName, extensions, data),
+  /** Save a narration recording next to the recordings; returns its path. */
+  saveNarration: (data: Uint8Array): Promise<string> => ipcRenderer.invoke(IPC.narrationSave, data),
+  /** Copy the project and all its files into a folder chosen by the user; returns the project path or null. */
+  packageProject: (json: string): Promise<string | null> => ipcRenderer.invoke(IPC.projectPackage, json),
   exporter: {
     /** Save dialog for one export; null if cancelled. */
     pickPath: (defaultName: string, extension: string): Promise<string | null> => ipcRenderer.invoke(IPC.exportPickPath, defaultName, extension),

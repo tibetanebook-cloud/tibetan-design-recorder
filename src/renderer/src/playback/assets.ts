@@ -38,6 +38,31 @@ export function ensureProjectAssets(project: Project): void {
   }
 }
 
+const fontsReady = new Set<string>();
+
+/**
+ * Load the fonts this project uses before its text is drawn (Pixi rasterizes text once).
+ * Only these are loaded: reading all 21 bundled families at startup made the app wait
+ * for fonts nobody had chosen.
+ */
+export async function ensureProjectFonts(project: Project): Promise<void> {
+  const families = new Set<string>();
+  if (project.captionStyle.fontFamily) families.add(project.captionStyle.fontFamily);
+  for (const c of project.clips) {
+    const family = (c.content as { fontFamily?: string }).fontFamily;
+    if (family) families.add(family);
+  }
+  const missing = [...families].filter((f) => !fontsReady.has(f));
+  if (!missing.length) return;
+  await Promise.all(
+    missing.map(async (family) => {
+      const safe = family.replace(/["\\]/g, "");
+      await Promise.all(["400", "700"].map((w) => document.fonts.load(`${w} 48px "${safe}"`, "Aa བོད").catch(() => [])));
+      fontsReady.add(family);
+    }),
+  );
+}
+
 export const cursorTrackFor = (mediaId: string): CursorTrack | undefined => cursorTracks.get(mediaId);
 
 export function sceneContext(): SceneContext {

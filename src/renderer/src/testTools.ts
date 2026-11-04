@@ -7,5 +7,6 @@ export { parseSubtitles, toSrt, toVtt } from "@shared/captions/captions";
 export { AudioFx } from "@shared/project/schema";
 export { enqueueExport, enqueueTracks } from "./export/exportJobs";
 export { FrameRenderer } from "./export/exporter";
+export { duckMusic, removeSilences } from "./proTools";
 export { DEFAULT_EXPORT, ExportSettings } from "@shared/export/settings";
 export { exportRange } from "@shared/export/plan";

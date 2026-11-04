@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import { version } from "./package.json";
 
 const shared = { "@shared": resolve(__dirname, "src/shared") };
 
@@ -19,6 +20,7 @@ export default defineConfig({
       alias: { ...shared, "@renderer": resolve(__dirname, "src/renderer/src") },
     },
     plugins: [react()],
+    define: { __APP_VERSION__: JSON.stringify(version) },
     build: {
       rollupOptions: { input: resolve(__dirname, "src/renderer/index.html") },
     },

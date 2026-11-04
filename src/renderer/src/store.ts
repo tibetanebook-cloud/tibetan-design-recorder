@@ -35,6 +35,12 @@ interface EditorStore {
   outMs: number | null;
   /** Result of the last auto-zoom suggestion run (for the status line). */
   suggestStatus: string | null;
+  /** Short message in the status bar after a command (already translated). */
+  notice: string | null;
+  /** Shown for a few seconds, or until changed if `stay` is set. */
+  setNotice: (notice: string | null, stay?: boolean) => void;
+  /** Effects copied with "Copy Effects": the clip they came from. */
+  lookSource: string | null;
   playheadMs: number;
   pps: number;
   snapping: boolean;
@@ -106,6 +112,8 @@ interface EditorStore {
   applySpeed: (factor: number) => void;
 }
 
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
 export const useEditor = create<EditorStore>((set, get) => {
   const present = () => get().history.present;
   return {
@@ -119,6 +127,13 @@ export const useEditor = create<EditorStore>((set, get) => {
     inMs: null,
     outMs: null,
     suggestStatus: null,
+    notice: null,
+    setNotice: (notice, stay = false) => {
+      clearTimeout(noticeTimer);
+      set({ notice });
+      if (notice && !stay) noticeTimer = setTimeout(() => set({ notice: null }), 8000);
+    },
+    lookSource: null,
     playheadMs: 2000,
     pps: 80,
     snapping: true,
@@ -126,8 +141,9 @@ export const useEditor = create<EditorStore>((set, get) => {
     clipboard: [],
     dragBase: null,
 
-    t: (key) => translate(get().language, key),
-    setLanguage: (language) => set({ language }),
+    t: (key) => translate(DEFAULT_LANGUAGE, key),
+    // A new function per language, so every component showing text redraws when it changes.
+    setLanguage: (language) => set({ language, t: (key) => translate(language, key), notice: null }),
     setView: (view) => set({ view }),
     edit: (label, edit) =>
       set((s) => {

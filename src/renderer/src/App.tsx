@@ -29,8 +29,37 @@ async function suggestWhenCursorLoaded(): Promise<void> {
   if (cursorTrackFor(cursorMedia.id) && useEditor.getState().history.present.id === p.id) useEditor.getState().suggestZooms();
 }
 
+/**
+ * Save state, project name, undo/redo. In its own component: the app itself must not
+ * redraw when the project or playhead changes, or every panel redraws on each frame.
+ */
+function StatusBar() {
+  const t = useEditor((s) => s.t);
+  const saveState = useEditor((s) => s.saveState);
+  const name = useEditor((s) => s.history.present.name);
+  const path = useEditor((s) => s.projectPath);
+  const canUndo = useEditor((s) => s.canUndo());
+  const canRedo = useEditor((s) => s.canRedo());
+  const notice = useEditor((s) => s.notice);
+  return (
+    <footer className="statusbar">
+      <span className={`status ${saveState}`}>{t(saveState === "error" ? "status.error" : `status.${saveState}`)}</span>
+      {notice && <span className="status-notice" data-notice>{notice}</span>}
+      <span className="project-name" data-l10n-skip lang={/[ༀ-࿿]/.test(name) ? "bo" : "en"}>{name}{path ? ` — ${path}` : ""}</span>
+      <span className="history" lang="en">
+        <button disabled={!canUndo} onClick={() => useEditor.getState().undo()} title={t("edit.undo")}>↶</button>
+        <button disabled={!canRedo} onClick={() => useEditor.getState().redo()} title={t("edit.redo")}>↷</button>
+      </span>
+    </footer>
+  );
+}
+
 export function App() {
-  const s = useEditor();
+  const language = useEditor((s) => s.language);
+  const t = useEditor((s) => s.t);
+  const view = useEditor((s) => s.view);
+  const setView = useEditor((s) => s.setView);
+  const exportDialog = useEditor((s) => s.exportDialog);
   const [recovery, setRecovery] = useState<RecoveryInfo>({ available: false });
   const [about, setAbout] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -69,7 +98,7 @@ export function App() {
   // Settings, language events, native-menu commands, recovery, smoke hook.
   useEffect(() => {
     void window.tdr.getSettings().then((settings) => {
-      s.setLanguage(settings.language);
+      useEditor.getState().setLanguage(settings.language);
       useShortcuts.getState().load(settings.shortcuts);
     });
     void window.tdr.checkRecovery().then(setRecovery);
@@ -135,18 +164,17 @@ export function App() {
 
   // Language drives <html lang>, which switches fonts and line-height in CSS.
   useEffect(() => {
-    document.documentElement.lang = s.language;
-    document.title = s.t("app.name");
-  }, [s.language, s]);
+    document.documentElement.lang = language;
+    document.title = t("app.name");
+  }, [language, t]);
 
   useEffect(() => {
     const timer = setInterval(() => void useEditor.getState().autosave(), AUTOSAVE_MS);
     return () => clearInterval(timer);
   }, []);
 
-  const project = s.history.present;
   const restore = async (yes: boolean) => {
-    if (yes && recovery.json) s.load(parseProject(JSON.parse(recovery.json)));
+    if (yes && recovery.json) useEditor.getState().load(parseProject(JSON.parse(recovery.json)));
     await window.tdr.resolveRecovery(yes);
     setRecovery({ available: false });
   };
@@ -156,15 +184,15 @@ export function App() {
       <MenuBar onCommand={run} />
       <div className="workspace">
         <aside className="sidebar">
-          <button className={`nav ${s.view === "recorder" ? "active" : ""}`} onClick={() => s.setView("recorder")}>
-            <span className="nav-dot rec" /> {s.t("view.recorder")}
+          <button className={`nav ${view === "recorder" ? "active" : ""}`} onClick={() => setView("recorder")}>
+            <span className="nav-dot rec" /> {t("view.recorder")}
           </button>
-          <button className={`nav ${s.view === "editor" ? "active" : ""}`} onClick={() => s.setView("editor")}>
-            <span className="nav-dot" /> {s.t("view.editor")}
+          <button className={`nav ${view === "editor" ? "active" : ""}`} onClick={() => setView("editor")}>
+            <span className="nav-dot" /> {t("view.editor")}
           </button>
         </aside>
         <main className="main">
-          {s.view === "editor" ? (
+          {view === "editor" ? (
             <div className="editor">
               <Preview />
               <SidePanel />
@@ -172,40 +200,33 @@ export function App() {
           ) : (
             <Recorder />
           )}
-          {s.view === "editor" && <Timeline />}
+          {view === "editor" && <Timeline />}
         </main>
       </div>
-      <footer className="statusbar">
-        <span className={`status ${s.saveState}`}>{s.t(s.saveState === "error" ? "status.error" : `status.${s.saveState}`)}</span>
-        <span className="project-name" data-l10n-skip lang={/[ༀ-࿿]/.test(project.name) ? "bo" : "en"}>{project.name}{s.projectPath ? ` — ${s.projectPath}` : ""}</span>
-        <span className="history" lang="en">
-          <button disabled={!s.canUndo()} onClick={s.undo} title={s.t("edit.undo")}>↶</button>
-          <button disabled={!s.canRedo()} onClick={s.redo} title={s.t("edit.redo")}>↷</button>
-        </span>
-      </footer>
+      <StatusBar />
 
       {recovery.available && (
         <div className="modal-backdrop">
           <div className="modal" role="dialog" aria-labelledby="recovery-title">
-            <h2 id="recovery-title">{s.t("recovery.title")}</h2>
-            <p>{s.t("recovery.message")}</p>
+            <h2 id="recovery-title">{t("recovery.title")}</h2>
+            <p>{t("recovery.message")}</p>
             <p className="muted">{recovery.projectName} · <span lang="en">{recovery.autosavedAt && new Date(recovery.autosavedAt).toLocaleString()}</span></p>
             <div className="modal-actions">
-              <button onClick={() => void restore(false)}>{s.t("recovery.discard")}</button>
-              <button className="primary" onClick={() => void restore(true)}>{s.t("recovery.restore")}</button>
+              <button onClick={() => void restore(false)}>{t("recovery.discard")}</button>
+              <button className="primary" onClick={() => void restore(true)}>{t("recovery.restore")}</button>
             </div>
           </div>
         </div>
       )}
       {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
-      {s.exportDialog && <ExportDialog mode={s.exportDialog} onClose={() => s.setExportDialog(null)} />}
+      {exportDialog && <ExportDialog mode={exportDialog} onClose={() => useEditor.getState().setExportDialog(null)} />}
       {about && (
         <div className="modal-backdrop" onClick={() => setAbout(false)}>
           <div className="modal">
-            <h2>{s.t("app.name")}</h2>
-            <p>{s.t("app.tagline")}</p>
-            <p className="muted">{s.t("app.version")} <span lang="en">0.1.0</span></p>
-            <div className="modal-actions"><button className="primary">{s.t("inspector.ok")}</button></div>
+            <h2>{t("app.name")}</h2>
+            <p>{t("app.tagline")}</p>
+            <p className="muted">{t("app.version")} <span lang="en">{__APP_VERSION__}</span></p>
+            <div className="modal-actions"><button className="primary">{t("inspector.ok")}</button></div>
           </div>
         </div>
       )}

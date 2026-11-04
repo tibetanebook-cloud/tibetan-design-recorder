@@ -58,8 +58,14 @@ export const MENUS: MenuDef[] = [
       a("edit.duplicate"),
       a("edit.selectAll"),
       a("edit.split", true),
-      a("edit.link"),
+      a("edit.freezeFrame"),
+      a("edit.deleteRange"),
+      a("edit.insertTime"),
+      a("edit.closeGaps"),
+      a("edit.link", true),
       a("edit.unlink"),
+      a("edit.copyLook", true),
+      a("edit.pasteLook"),
       { label: "edit.shortcuts", command: "edit.shortcuts", separatorBefore: true },
     ],
   },
@@ -82,7 +88,7 @@ export const MENUS: MenuDef[] = [
   {
     label: "menu.insert",
     items: [
-      a("insert.text"), a("insert.image"), a("insert.shape"), a("insert.arrow"), a("insert.callout"),
+      a("insert.text"), a("insert.image"), a("insert.shape"), a("insert.ellipse"), a("insert.triangle"), a("insert.star"), a("insert.polygon"), a("insert.arrow"), a("insert.sketchArrow"), a("insert.callout"),
       a("insert.highlight"), a("insert.spotlight"), a("insert.blurRegion"),
       { label: "title.lowerThird", command: "title.lowerThird", separatorBefore: true }, { label: "title.intro", command: "title.intro" }, { label: "title.outro", command: "title.outro" },
       a("insert.marker", true), a("insert.chapter"), a("insert.quiz"), a("insert.stepNumber"), a("insert.keystrokes"),
@@ -100,11 +106,11 @@ export const MENUS: MenuDef[] = [
   },
   {
     label: "menu.audio",
-    items: [a("audio.noiseRemoval"), a("audio.leveling"), a("audio.equalizer"), a("audio.compressor"), a("audio.fadeIn", true), a("audio.fadeOut"), a("audio.captions", true)],
+    items: [a("audio.noiseRemoval"), a("audio.leveling"), a("audio.equalizer"), a("audio.compressor"), a("audio.fadeIn", true), a("audio.fadeOut"), a("audio.removeSilence", true), a("audio.duckMusic"), a("audio.narration"), a("audio.captions", true)],
   },
   {
     label: "menu.export",
-    items: [a("export.video"), a("export.tracks"), a("export.audioOnly"), a("export.subtitles", true), a("export.queue", true), a("export.batch")],
+    items: [a("export.video"), a("export.tracks"), a("export.audioOnly"), a("export.subtitles", true), a("export.frame"), a("export.package"), a("export.queue", true), a("export.batch")],
   },
   {
     label: "menu.help",

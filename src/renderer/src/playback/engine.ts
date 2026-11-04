@@ -18,8 +18,9 @@
  */
 import type { Clip, Project } from "@shared/project/schema";
 import { buildScene, fadeAt, isClipActive, sourceTime } from "@shared/scene/buildScene";
-import { cursorTrackFor, ensureProjectAssets, installedExtensions, sceneContext } from "./assets";
+import { cursorTrackFor, ensureProjectAssets, ensureProjectFonts, installedExtensions, sceneContext } from "./assets";
 import { isAudible, trackById } from "@shared/timeline/ops";
+import { volumeAt } from "@shared/effects/animate";
 import type { Compositor } from "../compositor/Compositor";
 import { FxChain } from "../audio/fxChain";
 
@@ -33,6 +34,9 @@ import { FxChain } from "../audio/fxChain";
 const DRIFT_IGNORE_S = 0.04;
 const DRIFT_SEEK_S = 0.5;
 const MAX_RATE_NUDGE = 0.08;
+/** Open a clip's file this long before it starts. */
+const PRELOAD_MS = 1500;
+const SPARE_PER_FILE = 2;
 
 interface Slot {
   el: HTMLMediaElement | HTMLImageElement;
@@ -47,6 +51,8 @@ interface Slot {
 export class PlaybackEngine {
   private ctx: AudioContext | null = null;
   private slots = new Map<string, Slot>();
+  /** Finished elements waiting for the next clip of the same file. */
+  private spare = new Map<string, Slot[]>();
   private raf: { frame: number; timer: number } = { frame: 0, timer: 0 };
   /** performance.now() when the clock started. */
   private startPerf = 0;
@@ -68,12 +74,20 @@ export class PlaybackEngine {
     return el instanceof HTMLVideoElement || el instanceof HTMLImageElement ? el : undefined;
   }
 
+  warmUp(): void {
+    this.audioContext();
+  }
+
   private audioContext(): AudioContext {
     if (!this.ctx) this.ctx = new AudioContext({ latencyHint: "playback" });
     return this.ctx;
   }
 
-  /** Create/reuse the element for a clip; drop elements of clips that no longer exist. */
+  /**
+   * Create/reuse the element for a clip. Elements exist only for clips on screen or
+   * about to start, and finished ones are kept for reuse, so a recording cut into many
+   * pieces does not open a player per piece (measured: 120 open for 120 clips, now 3).
+   */
   private slot(project: Project, clip: Clip): Slot | null {
     if (clip.content.type !== "media" || !clip.mediaId) return null;
     const media = project.media.find((m) => m.id === clip.mediaId);
@@ -82,6 +96,10 @@ export class PlaybackEngine {
     if (slot && slot.mediaId !== media.id) {
       this.release(clip.id);
       slot = undefined;
+    }
+    if (!slot) {
+      slot = this.spare.get(media.id)?.pop();
+      if (slot) this.slots.set(clip.id, slot);
     }
     if (!slot && media.kind === "image") {
       const img = new Image();
@@ -115,29 +133,70 @@ export class PlaybackEngine {
     return slot;
   }
 
+  /** Keep the element for the next clip of the same file, or free it if enough are waiting. */
   private release(clipId: string): void {
     const slot = this.slots.get(clipId);
     if (!slot) return;
+    this.slots.delete(clipId);
     if (slot.el instanceof HTMLMediaElement) {
       slot.el.pause();
+      slot.gain?.gain.setTargetAtTime(0, this.audioContext().currentTime, 0.01);
+    }
+    const waiting = this.spare.get(slot.mediaId) ?? [];
+    if (waiting.length < SPARE_PER_FILE) {
+      waiting.push(slot);
+      this.spare.set(slot.mediaId, waiting);
+    } else this.destroySlot(slot);
+  }
+
+  private destroySlot(slot: Slot): void {
+    if (slot.el instanceof HTMLMediaElement) {
+      slot.el.pause();
+      if (slot.el instanceof HTMLVideoElement) this.compositor()?.forgetVideo(slot.el);
       slot.el.removeAttribute("src");
       slot.el.load();
     }
     slot.fx?.disconnect();
     slot.gain?.disconnect();
     slot.pan?.disconnect();
-    this.slots.delete(clipId);
   }
 
-  private prune(project: Project): void {
-    const live = new Set(project.clips.map((c) => c.id));
-    for (const id of [...this.slots.keys()]) if (!live.has(id)) this.release(id);
+  /** Files no longer in the project free their waiting elements too. */
+  private prune(project: Project, keep?: (clip: Clip) => boolean): void {
+    const clips = new Map(project.clips.map((c) => [c.id, c]));
+    for (const id of [...this.slots.keys()]) {
+      const clip = clips.get(id);
+      if (!clip || (keep && !keep(clip))) this.release(id);
+    }
+    for (const [mediaId, waiting] of this.spare) {
+      if (project.media.some((m) => m.id === mediaId)) continue;
+      waiting.forEach((s) => this.destroySlot(s));
+      this.spare.delete(mediaId);
+    }
+  }
+
+  /**
+   * A clip that continues the same file where the running one ended (a cut with nothing
+   * removed, or the next piece of a take) takes over the running element: no seek, no hitch.
+   */
+  private handOver(project: Project, clip: Clip, now: number): void {
+    if (this.slots.has(clip.id) || !clip.mediaId) return;
+    const target = sourceTime(clip, now) / 1000;
+    for (const [id, slot] of this.slots) {
+      if (slot.mediaId !== clip.mediaId || !(slot.el instanceof HTMLMediaElement) || slot.el.paused) continue;
+      const owner = project.clips.find((c) => c.id === id);
+      if (owner && isClipActive(owner, now)) continue;
+      if (Math.abs(slot.el.currentTime - target) > DRIFT_SEEK_S) continue;
+      this.slots.delete(id);
+      this.slots.set(clip.id, slot);
+      return;
+    }
   }
 
   private applyMix(project: Project, clip: Clip, slot: Slot, timeMs: number): void {
     if (!slot.gain || !slot.pan) return;
     const track = trackById(project, clip.trackId);
-    const level = isAudible(project, clip) ? clip.volume * (track?.volume ?? 1) * fadeAt(clip, timeMs) : 0;
+    const level = isAudible(project, clip) ? clip.volume * (track?.volume ?? 1) * fadeAt(clip, timeMs) * volumeAt(clip, timeMs - clip.startMs) : 0;
     const now = this.audioContext().currentTime;
     slot.gain.gain.setTargetAtTime(level, now, 0.01);
     slot.pan.pan.setTargetAtTime(track?.pan ?? 0, now, 0.01);
@@ -188,7 +247,10 @@ export class PlaybackEngine {
     const project = this.getProject();
     this.prune(project);
     ensureProjectAssets(project);
+    await ensureProjectFonts(project);
     const scene = buildScene(project, timeMs, sceneContext());
+    const shown = new Set(scene.layers.map((l) => l.clipId));
+    this.prune(project, (clip) => shown.has(clip.id));
     await Promise.all(
       scene.layers.map(async (layer) => {
         const clip = project.clips.find((c) => c.id === layer.clipId);
@@ -283,12 +345,33 @@ export class PlaybackEngine {
       this.onEnded();
       return;
     }
-    this.prune(project);
+    // Hand running elements to the clips that continue them, before anything is released.
+    for (const clip of project.clips) if (isClipActive(clip, now)) this.handOver(project, clip, now);
+    this.prune(project, (clip) => clip.startMs - now < PRELOAD_MS && clip.startMs + clip.durationMs > now);
     for (const clip of project.clips) {
+      const startsIn = clip.startMs - now;
+      if (startsIn >= PRELOAD_MS || clip.startMs + clip.durationMs <= now) continue;
+      // Upcoming: load it now only if no running element of this file will carry on into it.
+      if (startsIn > 0 && !this.slots.has(clip.id)) {
+        const carried = project.clips.some((c) => c.mediaId === clip.mediaId && c.startMs + c.durationMs === clip.startMs && c.sourceInMs + c.durationMs * c.speed === clip.sourceInMs && this.slots.has(c.id));
+        if (carried) continue;
+      }
       const slot = this.slot(project, clip);
       if (!slot || !(slot.el instanceof HTMLMediaElement)) continue;
-      const active = isClipActive(clip, now) && !clip.hidden && !trackById(project, clip.trackId)?.hidden;
       const el = slot.el;
+      if (startsIn > 0) {
+        // Waiting for its start: show the first frame as soon as it comes on.
+        if (!el.paused) el.pause();
+        if (Math.abs(el.currentTime - clip.sourceInMs / 1000) > 0.05) el.currentTime = clip.sourceInMs / 1000;
+        continue;
+      }
+      if (clip.freeze) {
+        // A held frame: the element stays paused on it.
+        if (!el.paused) el.pause();
+        if (Math.abs(el.currentTime - clip.sourceInMs / 1000) > 0.05) el.currentTime = clip.sourceInMs / 1000;
+        continue;
+      }
+      const active = !clip.hidden && !trackById(project, clip.trackId)?.hidden;
       if (!active) {
         if (!el.paused) el.pause();
         continue;
@@ -296,7 +379,7 @@ export class PlaybackEngine {
       const target = sourceTime(clip, now) / 1000;
       let rate = clip.speed;
       if (el.paused) {
-        el.currentTime = target;
+        if (Math.abs(el.currentTime - target) > 0.05) el.currentTime = target;
         void el.play().catch(() => undefined);
       } else {
         const drift = target - el.currentTime; // > 0: element is behind the clock
@@ -352,7 +435,10 @@ export class PlaybackEngine {
 
   dispose(): void {
     this.pause();
-    for (const id of [...this.slots.keys()]) this.release(id);
+    for (const slot of this.slots.values()) this.destroySlot(slot);
+    this.slots.clear();
+    for (const waiting of this.spare.values()) waiting.forEach((s) => this.destroySlot(s));
+    this.spare.clear();
     void this.ctx?.close();
     this.ctx = null;
   }

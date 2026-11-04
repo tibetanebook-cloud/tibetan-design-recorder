@@ -196,10 +196,12 @@ export const ClipContent = z.discriminatedUnion("type", [
   /** Figure annotations. Arrow/line use (x1,y1)->(x2,y2) in canvas pixels; rect/ellipse use the clip frame. */
   z.object({
     type: z.literal("shape"),
-    shape: z.enum(["arrow", "line", "rect", "ellipse"]),
+    shape: z.enum(["arrow", "line", "rect", "ellipse", "triangle", "star", "polygon"]),
     color: z.string().default("#e8c56a"),
     strokeWidth: z.number().min(0).default(8),
     fill: z.string().optional(),
+    /** Draws itself on screen over this time, like a pen sketch (0 = appears at once). */
+    drawOnMs: z.number().min(0).max(10000).optional(),
     x1: z.number().default(0),
     y1: z.number().default(0),
     x2: z.number().default(0),
@@ -233,8 +235,76 @@ export const Clip = z.object({
   locked: z.boolean().default(false),
   transitionIn: z.lazy(() => Transition).optional(),
   transitionOut: z.lazy(() => Transition).optional(),
+  /** Show one still frame of the source (sourceInMs) for the whole clip. */
+  freeze: z.boolean().optional(),
+  /** Position, size, rotation and opacity at chosen moments (t = ms from the clip's start). */
+  keyframes: z
+    .array(
+      z.object({
+        t: z.number().nonnegative(),
+        x: z.number().default(0),
+        y: z.number().default(0),
+        scale: z.number().min(0).max(20).default(1),
+        rotation: z.number().default(0),
+        opacity: z.number().min(0).max(1).default(1),
+        ease: z.enum(["linear", "smooth", "in", "out"]).default("smooth"),
+      }),
+    )
+    .optional(),
+  /** Ready-made motion: entrance, while on screen, exit. */
+  behavior: z
+    .object({
+      in: z.enum(["none", "fade", "fly-left", "fly-right", "fly-up", "fly-down", "pop", "spin", "drop"]).default("none"),
+      inMs: z.number().min(50).max(10000).default(600),
+      during: z.enum(["none", "pulse", "float", "shake", "sway", "spin"]).default("none"),
+      amount: z.number().min(0).max(4).default(1),
+      out: z.enum(["none", "fade", "fly-left", "fly-right", "fly-up", "fly-down", "pop", "spin", "drop"]).default("none"),
+      outMs: z.number().min(50).max(10000).default(600),
+    })
+    .optional(),
+  /** Picture effects for any video or image clip. */
+  fx: z.lazy(() => ClipFx).optional(),
+  /** Volume over time, on top of the clip volume (t = ms from the clip's start). */
+  volumePoints: z.array(z.object({ t: z.number().nonnegative(), gain: z.number().min(0).max(4) })).optional(),
 });
 export type Clip = z.infer<typeof Clip>;
+
+export const ClipFx = z.object({
+  flipH: z.boolean().default(false),
+  flipV: z.boolean().default(false),
+  /** Rounded corners, in canvas pixels. */
+  radius: z.number().min(0).max(1000).default(0),
+  /** Soft shadow strength. */
+  shadow: z.number().min(0).max(2).default(0),
+  border: z.object({ width: z.number().min(0).max(100).default(0), color: z.string().default("#ffffff") }).default({ width: 0, color: "#ffffff" }),
+  /** Colour adjustments (same controls as the webcam looks). */
+  look: z
+    .object({
+      preset: z.enum(LOOK_PRESETS).default("none"),
+      smooth: z.number().min(0).max(1).default(0),
+      brighten: z.number().min(0).max(1).default(0),
+      sharpen: z.number().min(0).max(1).default(0),
+      brightness: z.number().min(-1).max(1).default(0),
+      contrast: z.number().min(-1).max(1).default(0),
+      saturation: z.number().min(-1).max(1).default(0),
+      temperature: z.number().min(-1).max(1).default(0),
+      tint: z.number().min(-1).max(1).default(0),
+      fade: z.number().min(0).max(1).default(0),
+      vignette: z.number().min(0).max(1).default(0),
+    })
+    .optional(),
+  /** Make one colour transparent (green screen for any clip). */
+  chroma: z
+    .object({
+      enabled: z.boolean().default(false),
+      color: z.string().default("#00ff00"),
+      similarity: z.number().min(0).max(1).default(0.4),
+      smoothness: z.number().min(0).max(1).default(0.08),
+      spill: z.number().min(0).max(1).default(0.3),
+    })
+    .optional(),
+});
+export type ClipFx = z.infer<typeof ClipFx>;
 
 export const TRANSITIONS = ["fade", "dissolve", "slide-left", "slide-right", "slide-up", "slide-down", "wipe", "zoom", "blur"] as const;
 export const Transition = z.object({
@@ -356,6 +426,12 @@ export const CursorStyle = z.object({
   keystrokes: z.boolean().default(false),
   /** Click sound from an extension (id), if any. */
   clickSound: z.string().optional(),
+  /** Coloured circle that follows the pointer. */
+  highlight: z.object({ enabled: z.boolean().default(false), color: z.string().default("#ffe066"), size: z.number().min(0.5).max(8).default(2.2), opacity: z.number().min(0).max(1).default(0.4) }).optional(),
+  /** Darken everything except a circle around the pointer. */
+  spotlight: z.object({ enabled: z.boolean().default(false), size: z.number().min(1).max(20).default(6), dim: z.number().min(0).max(1).default(0.55) }).optional(),
+  /** Enlarged circle of the screen around the pointer. */
+  magnify: z.object({ enabled: z.boolean().default(false), scale: z.number().min(1.1).max(5).default(2), size: z.number().min(1).max(20).default(7) }).optional(),
 });
 export type CursorStyle = z.infer<typeof CursorStyle>;
 

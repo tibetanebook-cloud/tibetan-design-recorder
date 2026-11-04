@@ -315,6 +315,28 @@ export function CursorPanel() {
           <Slider label={t("inspector.duration")} value={c.clickEffectMs / 1000} min={0.12} max={1.2} step={0.02} format={(v) => `${v.toFixed(2)} s`} onPreview={(v) => set({ clickEffectMs: v * 1000 })} />
         </>
       )}
+      <Check label={t("cursor.highlight")} checked={!!c.highlight?.enabled} onChange={(enabled) => edit("cursor.highlight", set({ highlight: { color: "#ffe066", size: 2.2, opacity: 0.4, ...c.highlight, enabled } }))} />
+      {c.highlight?.enabled && (
+        <>
+          <Color label={t("inspector.color")} value={c.highlight.color} onChange={(color) => edit("edit.props", set({ highlight: { ...c.highlight!, color } }))} />
+          <Slider label={t("inspector.size")} value={c.highlight.size} min={0.5} max={8} step={0.1} format={(v) => `${v.toFixed(1)}×`} onPreview={(size) => set({ highlight: { ...c.highlight!, size } })} />
+          <Slider label={t("inspector.opacity")} value={c.highlight.opacity} min={0} max={1} step={0.01} format={pct} onPreview={(opacity) => set({ highlight: { ...c.highlight!, opacity } })} />
+        </>
+      )}
+      <Check label={t("cursor.spotlight")} checked={!!c.spotlight?.enabled} onChange={(enabled) => edit("cursor.spotlight", set({ spotlight: { size: 6, dim: 0.55, ...c.spotlight, enabled } }))} />
+      {c.spotlight?.enabled && (
+        <>
+          <Slider label={t("inspector.size")} value={c.spotlight.size} min={1} max={20} step={0.1} format={(v) => `${v.toFixed(1)}×`} onPreview={(size) => set({ spotlight: { ...c.spotlight!, size } })} />
+          <Slider label={t("cursor.dim")} value={c.spotlight.dim} min={0} max={1} step={0.01} format={pct} onPreview={(dim) => set({ spotlight: { ...c.spotlight!, dim } })} />
+        </>
+      )}
+      <Check label={t("cursor.magnify")} checked={!!c.magnify?.enabled} onChange={(enabled) => edit("cursor.magnify", set({ magnify: { scale: 2, size: 7, ...c.magnify, enabled } }))} />
+      {c.magnify?.enabled && (
+        <>
+          <Slider label={t("cursor.magnifyScale")} value={c.magnify.scale} min={1.1} max={5} step={0.1} format={(v) => `${v.toFixed(1)}×`} onPreview={(scale) => set({ magnify: { ...c.magnify!, scale } })} />
+          <Slider label={t("inspector.size")} value={c.magnify.size} min={1} max={20} step={0.1} format={(v) => `${v.toFixed(1)}×`} onPreview={(size) => set({ magnify: { ...c.magnify!, size } })} />
+        </>
+      )}
       <Check label={t("insert.keystrokes")} checked={c.keystrokes} onChange={(keystrokes) => edit("insert.keystrokes", set({ keystrokes }))} />
       <Select
         label={t("cursor.clickSound")}

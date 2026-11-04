@@ -8,8 +8,8 @@
  *  - Ctrl/Cmd + wheel zooms around the mouse; Shift + wheel scrolls sideways.
  * Every drag is previewed live and becomes one undo step when released.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { Clip, Project, Track, TrackKind } from "@shared/project/schema";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import type { Clip, Media, Track, TrackKind } from "@shared/project/schema";
 import * as ops from "@shared/timeline/ops";
 import * as regions from "@shared/timeline/regions";
 import { displayShortcut } from "@shared/shortcuts";
@@ -23,6 +23,7 @@ const RULER_H = 28;
 const LANE_H: Record<TrackKind, number> = { screen: 48, webcam: 48, video: 48, image: 40, mic: 56, system: 56, audio: 56, annotation: 36, caption: 36, cursor: 30 };
 const SNAP_PX = 8;
 const EDGE_PX = 7;
+const MAX_WAVE_W = 2048;
 const isMac = window.tdr.platform === "darwin";
 
 export const KIND_COLOR: Record<TrackKind, string> = {
@@ -42,14 +43,15 @@ const EXTRA_KINDS: TrackKind[] = ["video", "image", "audio", "annotation", "capt
 
 export function Timeline() {
   const t = useEditor((s) => s.t);
-  const project = useEditor((s) => s.history.present);
+  const tracks = useEditor((s) => s.history.present.tracks);
+  // The length as a plain number, so edits that don't change it don't redraw every lane.
+  const durationMs = useEditor((s) => Math.max(ops.snapPoints(s.history.present, new Set()).reduce((a, b) => Math.max(a, b), 0), 10_000));
   const pps = useEditor((s) => s.pps);
   const scroll = useRef<HTMLDivElement>(null);
   const [snapLine, setSnapLine] = useState<number | null>(null);
 
-  const durationMs = Math.max(ops.snapPoints(project, new Set()).reduce((a, b) => Math.max(a, b), 0), 10_000);
   const contentW = ((durationMs + 30_000) / 1000) * pps;
-  const msToX = (ms: number) => (ms / 1000) * pps;
+  const msToX = useCallback((ms: number) => (ms / 1000) * pps, [pps]);
 
   // Ctrl/Cmd + wheel: zoom around the mouse position.
   useEffect(() => {
@@ -71,17 +73,20 @@ export function Timeline() {
   }, []);
 
   // Keep the playhead in view while playing.
-  useEffect(
-    () =>
-      useEditor.subscribe((s, prev) => {
+  useEffect(() => {
+    let lastCheck = 0;
+    return useEditor.subscribe((s, prev) => {
         if (!s.playing || s.playheadMs === prev.playheadMs || !scroll.current) return;
+        // Reading sizes forces the browser to lay out the page: a few times a second is enough.
+        const now = performance.now();
+        if (now - lastCheck < 200) return;
+        lastCheck = now;
         const el = scroll.current;
         const x = (s.playheadMs / 1000) * s.pps;
         const view = el.clientWidth - HEAD_W;
         if (x > el.scrollLeft + view - 40 || x < el.scrollLeft) el.scrollLeft = Math.max(0, x - 80);
-      }),
-    [],
-  );
+    });
+  }, []);
 
   const fit = () => {
     const el = scroll.current;
@@ -108,7 +113,7 @@ export function Timeline() {
             <Ruler width={contentW} msToX={msToX} setSnapLine={setSnapLine} />
           </div>
           <CameraLane width={contentW} setSnapLine={setSnapLine} />
-          {project.tracks.map((track, index) => (
+          {tracks.map((track, index) => (
             <Lane key={track.id} track={track} index={index} width={contentW} setSnapLine={setSnapLine} />
           ))}
           <div className="tl-lane-filler" />
@@ -123,26 +128,40 @@ export function Timeline() {
 
 // ---------------------------------------------------------------- toolbar
 
+/** The running time: the only toolbar part that changes on every frame of playback. */
+function TimeReadout() {
+  const ms = useEditor((s) => s.playheadMs);
+  const total = useEditor((s) => s.duration());
+  return (
+    <span className="tl-time" lang="en">
+      {formatTimecode(ms)} <span className="muted">/ {formatTimecode(total)}</span>
+    </span>
+  );
+}
+
 function Toolbar({ onFit }: { onFit: () => void }) {
-  const s = useEditor();
+  const playing = useEditor((x) => x.playing);
+  const snapping = useEditor((x) => x.snapping);
+  const pps = useEditor((x) => x.pps);
+  const selected = useEditor((x) => x.selection.length);
+  const t = useEditor((x) => x.t);
+  // Actions never change, so they can be read once.
+  const s = { ...useEditor.getState(), playing, snapping, pps, t };
   const shortcuts = useShortcuts((x) => x.map);
   const key = (id: string) => (shortcuts[id] ? ` (${displayShortcut(shortcuts[id]!, isMac)})` : "");
-  const hasSel = s.selection.length > 0;
-  const total = s.duration();
+  const hasSel = selected > 0;
   return (
     <div className="tl-toolbar">
       <button className="tl-btn play" title={s.t("shortcuts.playPause") + key("transport.playPause")} onClick={() => s.setPlaying(!s.playing)}>
         {s.playing ? "❚❚" : "▶"}
       </button>
-      <span className="tl-time" lang="en">
-        {formatTimecode(s.playheadMs)} <span className="muted">/ {formatTimecode(total)}</span>
-      </span>
+      <TimeReadout />
       <span className="tl-sep" />
       <button className="tl-btn" title={s.t("edit.split") + key("edit.split")} onClick={s.split}>✂</button>
       <button className="tl-btn" disabled={!hasSel} title={s.t("edit.delete") + key("edit.delete")} onClick={() => s.deleteSelection(false)}>🗑</button>
       <button className="tl-btn" disabled={!hasSel} title={s.t("edit.rippleDelete") + key("edit.rippleDelete")} onClick={() => s.deleteSelection(true)}>⇤</button>
       <button className="tl-btn" disabled={!hasSel} title={s.t("edit.duplicate") + key("edit.duplicate")} onClick={s.duplicateSelection}>⧉</button>
-      <button className="tl-btn" disabled={s.selection.length < 2} title={s.t("edit.link") + key("edit.link")} onClick={s.linkSelection}>🔗</button>
+      <button className="tl-btn" disabled={selected < 2} title={s.t("edit.link") + key("edit.link")} onClick={s.linkSelection}>🔗</button>
       <button className="tl-btn" disabled={!hasSel} title={s.t("edit.unlink") + key("edit.unlink")} onClick={s.unlinkSelection}>⛓̸</button>
       <span className="tl-sep" />
       <button className={`tl-btn ${s.snapping ? "on" : ""}`} aria-pressed={s.snapping} title={s.t("view.snapping") + key("view.snapping")} onClick={s.toggleSnapping}>
@@ -193,9 +212,9 @@ function tickStep(pps: number): number {
   return steps.find((st) => st * pps >= 90) ?? 3600;
 }
 
-function Ruler({ width, msToX, setSnapLine }: { width: number; msToX: (ms: number) => number; setSnapLine: (ms: number | null) => void }) {
+const Ruler = memo(function Ruler({ width, msToX, setSnapLine }: { width: number; msToX: (ms: number) => number; setSnapLine: (ms: number | null) => void }) {
   const t = useEditor((s) => s.t);
-  const project = useEditor((s) => s.history.present);
+  const markers = useEditor((s) => s.history.present.markers);
   const pps = useEditor((s) => s.pps);
   const [editing, setEditing] = useState<string | null>(null);
   const step = tickStep(pps);
@@ -256,7 +275,7 @@ function Ruler({ width, msToX, setSnapLine }: { width: number; msToX: (ms: numbe
           <span lang="en">{formatTimecode(sec * 1000, step < 1)}</span>
         </div>
       ))}
-      {project.markers.map((m) => (
+      {markers.map((m) => (
         <div
           key={m.id}
           className={`tl-marker ${m.kind}`}
@@ -301,7 +320,7 @@ function Ruler({ width, msToX, setSnapLine }: { width: number; msToX: (ms: numbe
       ))}
     </div>
   );
-}
+});
 
 /** Shaded In/Out range (for speed regions). */
 function InOutRange() {
@@ -324,7 +343,7 @@ function InOutRange() {
  * Camera lane: zoom regions. Drag to move, drag an edge to resize, double-click
  * empty space to add a 2.5 s zoom. Suggestions are dashed ghosts with ✓ / ✕.
  */
-function CameraLane({ width, setSnapLine }: { width: number; setSnapLine: (ms: number | null) => void }) {
+const CameraLane = memo(function CameraLane({ width, setSnapLine }: { width: number; setSnapLine: (ms: number | null) => void }) {
   const t = useEditor((s) => s.t);
   const zooms = useEditor((s) => s.history.present.zooms);
   const pps = useEditor((s) => s.pps);
@@ -428,7 +447,7 @@ function CameraLane({ width, setSnapLine }: { width: number; setSnapLine: (ms: n
       </div>
     </div>
   );
-}
+});
 
 const depthLabel = (depth: number) => `${[1.25, 1.5, 1.8, 2.2, 3.5, 5][depth - 1] ?? 1.5}×`;
 
@@ -436,7 +455,8 @@ function PlayheadLine() {
   const ms = useEditor((s) => s.playheadMs);
   const pps = useEditor((s) => s.pps);
   return (
-    <div className="tl-playhead" style={{ left: HEAD_W + (ms / 1000) * pps }}>
+    // A transform moves it without laying out the timeline on every frame.
+    <div className="tl-playhead" style={{ left: HEAD_W, transform: `translateX(${(ms / 1000) * pps}px)` }}>
       <span className="tl-playhead-cap" />
     </div>
   );
@@ -444,7 +464,7 @@ function PlayheadLine() {
 
 // ---------------------------------------------------------------- lanes
 
-function Lane({ track, index, width, setSnapLine }: { track: Track; index: number; width: number; setSnapLine: (ms: number | null) => void }) {
+const Lane = memo(function Lane({ track, index, width, setSnapLine }: { track: Track; index: number; width: number; setSnapLine: (ms: number | null) => void }) {
   const t = useEditor((s) => s.t);
   // Select the stable clips array and filter here (a filtered array from the selector
   // would be a new object on every read and re-render forever).
@@ -520,7 +540,7 @@ function Lane({ track, index, width, setSnapLine }: { track: Track; index: numbe
       </div>
     </div>
   );
-}
+});
 
 function Toggle({ on, label, glyph, onClick }: { on: boolean; label: string; glyph: string; onClick: () => void }) {
   return (
@@ -539,23 +559,21 @@ function Toggle({ on, label, glyph, onClick }: { on: boolean; label: string; gly
 
 // ---------------------------------------------------------------- clips
 
-function clipLabel(project: Project, clip: Clip, track: Track, t: (k: string) => string): string {
+function clipLabel(media: Media | undefined, clip: Clip, track: Track, t: (k: string) => string): string {
   if (clip.content.type === "text") return clip.content.text;
   if (clip.content.type === "shape") return t(clip.content.shape === "arrow" || clip.content.shape === "line" ? "insert.arrow" : "insert.shape");
-  const media = project.media.find((m) => m.id === clip.mediaId);
   if (media?.origin === "import") return media.path.split(/[\\/]/).pop() ?? "";
   return track.name || t(`track.${track.kind}`);
 }
 
-function ClipView({ clip, track, laneHeight, setSnapLine }: { clip: Clip; track: Track; laneHeight: number; setSnapLine: (ms: number | null) => void }) {
+const ClipView = memo(function ClipView({ clip, track, laneHeight, setSnapLine }: { clip: Clip; track: Track; laneHeight: number; setSnapLine: (ms: number | null) => void }) {
   const t = useEditor((s) => s.t);
   const pps = useEditor((s) => s.pps);
   const selected = useEditor((s) => s.selection.includes(clip.id));
-  const project = useEditor((s) => s.history.present);
-  const media = project.media.find((m) => m.id === clip.mediaId);
+  const media = useEditor((s) => s.history.present.media.find((m) => m.id === clip.mediaId));
   const left = (clip.startMs / 1000) * pps;
   const width = Math.max(2, (clip.durationMs / 1000) * pps);
-  const label = clipLabel(project, clip, track, t);
+  const label = clipLabel(media, clip, track, t);
   const locked = clip.locked || track.locked;
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -575,7 +593,7 @@ function ClipView({ clip, track, laneHeight, setSnapLine }: { clip: Clip; track:
     const edge: "start" | "end" | null = offset < EDGE_PX ? "start" : rect.right - e.clientX < EDGE_PX ? "end" : null;
     const x0 = e.clientX;
     const y0 = e.clientY;
-    const laneIndex = project.tracks.findIndex((tr) => tr.id === track.id);
+    const laneIndex = st.history.present.tracks.findIndex((tr) => tr.id === track.id);
     const ids = useEditor.getState().selection;
     st.beginDrag();
     const base = useEditor.getState().dragBase!;
@@ -629,9 +647,11 @@ function ClipView({ clip, track, laneHeight, setSnapLine }: { clip: Clip; track:
       {media?.kind === "audio" && <Waveform clip={clip} path={media.path} durationMs={media.durationMs} width={width} height={laneHeight - 10} />}
       <span className="clip-label" lang={clip.content.type === "text" ? clip.content.lang : /[ༀ-࿿]/.test(label) ? "bo" : undefined}>
         {clip.linkGroup && <span title={t("timeline.linked")}>🔗 </span>}
+        {clip.freeze && <span>❄ </span>}
         {clip.speed !== 1 && <span lang="en">{clip.speed}× </span>}
         {label}
       </span>
+      {clip.keyframes?.map((k) => <span key={k.t} className="clip-key" style={{ left: (k.t / 1000) * pps }} />)}
       {clip.fadeInMs > 0 && <span className="clip-fade in" style={{ width: (clip.fadeInMs / 1000) * pps }} />}
       {clip.fadeOutMs > 0 && <span className="clip-fade out" style={{ width: (clip.fadeOutMs / 1000) * pps }} />}
       {!locked && (
@@ -642,7 +662,7 @@ function ClipView({ clip, track, laneHeight, setSnapLine }: { clip: Clip; track:
       )}
     </div>
   );
-}
+});
 
 /** Index of the lane under a screen Y position (NaN outside lanes). */
 function laneUnder(clientY: number): number {
@@ -663,11 +683,13 @@ function Waveform({ clip, path, durationMs, width, height }: { clip: Clip; path:
       alive = false;
     };
   }, [path, durationMs]);
-  const w = Math.min(Math.round(width), 16_000);
+  // Drawn at most this wide and stretched: a canvas per clip as wide as a zoomed-in
+  // timeline used a lot of memory and made zooming slow.
+  const w = Math.min(Math.round(width), MAX_WAVE_W);
   useLayoutEffect(() => {
     if (canvas.current && peaks) drawWaveform(canvas.current, peaks, clip.sourceInMs, clip.durationMs, clip.speed, "rgba(255,255,255,0.55)");
   }, [peaks, w, height, clip.sourceInMs, clip.durationMs, clip.speed]);
   if (!peaks) return null;
-  return <canvas ref={canvas} className="clip-wave" width={w} height={height} />;
+  return <canvas ref={canvas} className="clip-wave" width={w} height={height} style={{ width }} />;
 }
 

@@ -13,6 +13,7 @@ import { withTimeout } from "@shared/recording/timeout";
 import type { TrackFileKind } from "@shared/recording/types";
 
 const OPEN_TIMEOUT_MS = 15_000;
+const KEYFRAME_INTERVAL_MS = 1000;
 
 const VIDEO_TYPES = ["video/webm;codecs=h264", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
 const AUDIO_TYPES = ["audio/webm;codecs=opus", "audio/webm"];
@@ -44,7 +45,11 @@ function record(kind: TrackFileKind, stream: MediaStream): void {
   const mimeType = pick(video ? VIDEO_TYPES : AUDIO_TYPES);
   const recorder = new MediaRecorder(stream, {
     mimeType,
-    ...(video ? { videoBitsPerSecond: videoBitrate(video) } : { audioBitsPerSecond: kind === "mic" ? 160_000 : 192_000 }),
+    // A keyframe every second: without it the encoder makes almost none, and every jump in
+    // the editor has to decode from far back (measured: 3.7 s per jump vs 0.09 s, 90 s take).
+    ...(video
+      ? ({ videoBitsPerSecond: videoBitrate(video), videoKeyFrameIntervalDuration: KEYFRAME_INTERVAL_MS } as MediaRecorderOptions)
+      : { audioBitsPerSecond: kind === "mic" ? 160_000 : 192_000 }),
   });
   let sending: Promise<void> = Promise.resolve();
   recorder.ondataavailable = (e) => {

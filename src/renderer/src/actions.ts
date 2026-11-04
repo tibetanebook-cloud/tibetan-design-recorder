@@ -9,6 +9,7 @@ import { toSrt, toVtt } from "@shared/captions/captions";
 import { laneCues } from "./mediaJobs";
 import * as ops from "@shared/timeline/ops";
 import { DEFAULT_SLOW_DOWN, DEFAULT_SPEED_UP } from "@shared/timeline/regions";
+import { closeGaps, copyLook, deleteRange, freezeFrame, insertTime } from "@shared/timeline/ranges";
 import { useEditor } from "./store";
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif)$/i;
@@ -42,6 +43,29 @@ export function runAction(id: string, external?: ExternalHandler): void {
     case "edit.selectAll": return s.selectAll();
     case "edit.link": return s.linkSelection();
     case "edit.unlink": return s.unlinkSelection();
+    case "edit.freezeFrame": return freezeAtPlayhead();
+    case "edit.deleteRange":
+      if (s.inMs === null || s.outMs === null || s.outMs <= s.inMs) return s.setNotice(s.t("notice.noRange"));
+      s.edit("edit.deleteRange", (p) => deleteRange(p, { startMs: s.inMs!, endMs: s.outMs! }));
+      return s.clearInOut();
+    case "edit.insertTime": return s.edit("edit.insertTime", (p) => insertTime(p, s.playheadMs, 2000));
+    case "edit.closeGaps": {
+      const lane = s.history.present.clips.find((c) => c.id === s.selection[0])?.trackId ?? s.selectedTrackId;
+      return lane ? s.edit("edit.closeGaps", (p) => closeGaps(p, lane)) : undefined;
+    }
+    case "edit.copyLook": return useEditor.setState({ lookSource: s.selection[0] ?? null });
+    case "edit.pasteLook":
+      return s.lookSource && s.selection.length ? s.edit("edit.pasteLook", (p) => copyLook(p, s.lookSource!, s.selection)) : undefined;
+    case "insert.ellipse": return insertFramedShape("ellipse", "insert.ellipse");
+    case "insert.triangle": return insertFramedShape("triangle", "insert.triangle");
+    case "insert.star": return insertFramedShape("star", "insert.star");
+    case "insert.polygon": return insertFramedShape("polygon", "insert.polygon");
+    case "insert.sketchArrow": return insertSketchArrow();
+    case "audio.removeSilence": return void import("./proTools").then((m) => m.removeSilences());
+    case "audio.duckMusic": return void import("./proTools").then((m) => m.duckMusic());
+    case "audio.narration": return void import("./proTools").then((m) => m.toggleNarration());
+    case "export.frame": return void import("./proTools").then((m) => m.saveFrame());
+    case "export.package": return void import("./proTools").then((m) => m.packageProject());
     case "insert.marker": return s.addMarkerAtPlayhead("marker");
     case "insert.chapter": return s.addMarkerAtPlayhead("chapter");
     case "insert.quiz": return s.addMarkerAtPlayhead("quiz");
@@ -176,6 +200,36 @@ function insertShape(shape: "arrow" | "rect"): void {
     return { ...project, clips: [...project.clips, clip] };
   });
   if (created) s.select([created]);
+}
+
+/** Hold the selected video clip's picture (else the top video under the playhead) for 3 seconds. */
+function freezeAtPlayhead(): void {
+  const s = useEditor.getState();
+  const p = s.history.present;
+  const isVideo = (c: Clip) => p.media.find((m) => m.id === c.mediaId)?.kind === "video";
+  const under = (c: Clip) => s.playheadMs >= c.startMs && s.playheadMs < ops.clipEnd(c);
+  const clip = p.clips.find((c) => s.selection.includes(c.id) && isVideo(c) && under(c)) ?? p.clips.find((c) => isVideo(c) && under(c));
+  if (!clip) return s.setNotice(s.t("notice.noClip"));
+  let created: string | null = null;
+  s.edit("edit.freezeFrame", (q) => {
+    const r = freezeFrame(q, clip.id, s.playheadMs, 3000);
+    created = r.id;
+    return r.project;
+  });
+  if (created) s.select([created]);
+}
+
+function insertFramedShape(shape: "ellipse" | "triangle" | "star" | "polygon", label: string): void {
+  const s = useEditor.getState();
+  const { width: W } = s.history.present.canvas;
+  void insertAnnotation(label, { type: "shape", shape, color: "#e8c56a", strokeWidth: Math.round(8 * (W / 1920)), x1: 0, y1: 0, x2: 0, y2: 0 }, (w, h) => ({ x: w * 0.38, y: h * 0.3, width: h * 0.4, height: h * 0.4 }));
+}
+
+/** An arrow that draws itself on screen. */
+function insertSketchArrow(): void {
+  const s = useEditor.getState();
+  const { width: W, height: H } = s.history.present.canvas;
+  void insertAnnotation("insert.sketchArrow", { type: "shape", shape: "arrow", color: "#e8c56a", strokeWidth: Math.round(10 * (W / 1920)), drawOnMs: 700, x1: W * 0.3, y1: H * 0.3, x2: W * 0.47, y2: H * 0.46 }, (w, h) => ({ x: 0, y: 0, width: w, height: h }));
 }
 
 /** Image annotation from a file, centred at 30 % of the canvas width. */

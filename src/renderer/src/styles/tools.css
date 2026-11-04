@@ -163,3 +163,22 @@
 .font-row.selected { background: rgba(212, 169, 74, 0.18); color: var(--gold); }
 .font-name { font-size: 16px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .font-sample { flex: none; font-size: 16px; line-height: 2.2; opacity: 0.8; }
+
+/* Keyframe diamonds on a clip */
+.clip-key { position: absolute; top: 50%; width: 9px; height: 9px; margin: -5px 0 0 -5px; background: var(--gold); border: 1px solid #1a1408; transform: rotate(45deg); pointer-events: none; z-index: 2; }
+.key-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.key-list button { font-size: 11px; padding: 2px 6px; }
+.key-list button.selected { border-color: var(--gold); color: var(--gold); }
+
+/* Themes */
+.theme-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.theme-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; padding: 2px; cursor: pointer; color: inherit; }
+.theme-swatch { display: grid; place-items: center; width: 46px; height: 32px; border-radius: 6px; border: 3px solid; font-size: 13px; }
+
+/* Files already in the project */
+.media-bin { display: flex; flex-direction: column; gap: 2px; max-height: 140px; overflow: auto; }
+.media-row { text-align: left; font-size: 12px; padding: 3px 6px; background: none; border: none; color: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-row:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Message after a command */
+.status-notice { margin-left: 12px; color: var(--gold); }

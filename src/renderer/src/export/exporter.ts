@@ -17,7 +17,7 @@ import { buildScene } from "@shared/scene/buildScene";
 import { Compositor, TIBETAN_FONT } from "../compositor/Compositor";
 import { laneCues } from "../mediaJobs";
 import { seekTo } from "../playback/engine";
-import { ensureProjectAssets, sceneContext } from "../playback/assets";
+import { ensureProjectAssets, ensureProjectFonts, sceneContext } from "../playback/assets";
 import { renderMix, SAMPLE_RATE } from "./audioMix";
 
 export interface ExportResult {
@@ -45,7 +45,7 @@ export class FrameRenderer {
   ) {}
 
   async init(): Promise<void> {
-    await document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད");
+    await Promise.all([document.fonts.load(`64px ${TIBETAN_FONT}`, "བོད"), ensureProjectFonts(this.project)]);
     await this.compositor.init(this.width, this.height, this.canvas);
     this.compositor.scale = this.width / this.project.canvas.width;
     this.compositor.mediaElement = (clipId) => this.els.get(clipId);

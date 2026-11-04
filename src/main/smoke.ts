@@ -24,6 +24,8 @@ import showcaseScript from "./smoke/showcase.page.js?raw";
 import { runDemoVideo } from "./demoVideo";
 import exportScript from "./smoke/export.page.js?raw";
 import l10nScript from "./smoke/l10n.page.js?raw";
+import perfScript from "./smoke/perf.page.js?raw";
+import proScript from "./smoke/pro.page.js?raw";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { MENUS } from "@shared/menu";
@@ -341,6 +343,11 @@ async function smokeTools(win: BrowserWindow, outDir: string, check: Check, page
   await wait(600);
   const style = (await win.webContents.executeJavaScript(styleScript, true)) as { name: string; ok: boolean; detail?: string }[];
   for (const r of style) check(`v0.2: ${r.name}`, r.ok, r.detail);
+  const pro = await page<{ name: string; ok: boolean; detail?: string }[]>(proScript);
+  for (const r of pro) check(`pro: ${r.name}`, r.ok, r.detail);
+  await page("{ const s = window.__tdrTest.store.getState(); const c = s.history.present.clips.find(c => s.history.present.tracks.find(t => t.id === c.trackId)?.kind === 'screen'); c && s.select([c.id]); s.setPanelTab('properties'); } 0");
+  await wait(800);
+  await fs.writeFile(join(outDir, "pro-panels-en.png"), await snapshot(win));
   await page("{ const s = window.__tdrTest.store.getState(); const cam = s.history.present.tracks.find(t => t.kind === 'webcam'); s.edit('t', p => ({ ...p, webcam: { ...p.webcam, layout: 'bubble', shape: 'heart', border: { style: 'neon', width: 8, color: '#ff4fa3', color2: '#7b5cff' }, look: { ...p.webcam.look, preset: 'golden', smooth: 0.6 } } })); s.setPlayhead(1000); s.select([]); s.selectTrack(cam.id); } 0");
   await wait(1500);
   await fs.writeFile(join(outDir, "v02-webcam-style-en.png"), await snapshot(win));
@@ -393,6 +400,9 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     });
     check("renderer ready", true);
     win.setSize(1440, 900);
+    // Until the preview can draw: what the user waits for after double-clicking the app.
+    while (!(await page<boolean>("!!window.__tdrTest?.compositor?.current"))) await wait(25);
+    const startupMs = Math.round(process.uptime() * 1000);
 
     if (process.argv.includes("--demo-video")) {
       // UI language of the video: Tibetan by default, --demo-lang=en for the English edition.
@@ -403,6 +413,60 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     }
     if (process.argv.includes("--showcase")) {
       await runShowcase(win, hooks, page, wait);
+      return 0;
+    }
+    const perfMedia = process.argv.find((a) => a.startsWith("--perf-media="))?.slice(13);
+    if (perfMedia) {
+      // A hidden window does not draw, so the speed test has to be on screen.
+      win.showInactive();
+      const memory = () => Math.round(app.getAppMetrics().reduce((sum, m) => sum + m.memory.workingSetSize, 0) / 1024);
+      const memoryBefore = memory();
+      const dbg = win.webContents.debugger;
+      dbg.attach("1.3");
+      await dbg.sendCommand("Profiler.enable");
+      await dbg.sendCommand("Profiler.start");
+      const result = await page<object>(`(${perfScript.trim().replace(/;$/, "")})(${JSON.stringify({ dir: perfMedia.replace(/\\/g, "/") })})`);
+      const { profile } = (await dbg.sendCommand("Profiler.stop")) as { profile: { nodes: { id: number; callFrame: { functionName: string; url: string; lineNumber: number } }[]; samples: number[]; timeDeltas: number[] } };
+      dbg.detach();
+      const byNode = new Map(profile.nodes.map((n) => [n.id, n.callFrame]));
+      const self = new Map<string, number>();
+      profile.samples.forEach((id, i) => {
+        const f = byNode.get(id)!;
+        const name = `${f.functionName || "(anon)"} ${f.url.split("/").pop()}:${f.lineNumber}`;
+        self.set(name, (self.get(name) ?? 0) + profile.timeDeltas[i]! / 1000);
+      });
+      const hottest = [...self].filter(([n]) => !n.startsWith("(idle)") && !n.startsWith("(program)")).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([n, ms]) => `${Math.round(ms)} ms  ${n}`);
+      const byProcess: Record<string, number> = {};
+      for (const m of app.getAppMetrics()) byProcess[m.type] = (byProcess[m.type] ?? 0) + Math.round(m.memory.workingSetSize / 1024);
+      const report = { startupMs, ...result, memoryMB: { before: memoryBefore, after: memory(), byProcess }, hottest };
+      // Does drawing frames keep eating memory? (Edited, so every frame is really rebuilt.)
+      const draw = (n: number) => page<void>(`(async () => { const { store, playback } = window.__tdrTest; for (let i = 0; i < ${n}; i++) { store.getState().setPlayhead(20000 + (i % 30) * 33); await playback.current.requestFrame(20000 + (i % 30) * 33); while (playback.current.frameBusy) await new Promise((r) => setTimeout(r, 1)); } })()`);
+      await draw(200);
+      const m0 = memory();
+      await draw(1500);
+      await wait(2000);
+      Object.assign(report, { memoryAfter1500FramesMB: { before: m0, after: memory() } });
+      await fs.writeFile(join(outDir, "perf.json"), JSON.stringify(report, null, 2));
+      console.log(JSON.stringify(report, null, 2));
+      // How the new panels really look, in both languages (this window is on screen).
+      win.setSize(1440, 1000);
+      for (const language of ["bo", "en"] as const) {
+        await hooks.setLanguage(language);
+        await wait(800);
+        await page("{ const s = window.__tdrTest.store.getState(); s.setPlayhead(20000); s.select(['c-screen-9']); s.setPanelTab('properties'); } 0");
+        await wait(800);
+        await page("document.querySelector('[data-motion=add]')?.scrollIntoView({ block: 'center' }); 0");
+        await wait(500);
+        await fs.writeFile(join(outDir, `pro-motion-${language}.png`), (await win.webContents.capturePage()).toPNG());
+        await page("document.querySelector('[data-fx=look]')?.scrollIntoView({ block: 'center' }); 0");
+        await wait(500);
+        await fs.writeFile(join(outDir, `pro-fx-${language}.png`), (await win.webContents.capturePage()).toPNG());
+        await page("{ const s = window.__tdrTest.store.getState(); s.setPanelTab('library'); document.querySelector('.menu-title:nth-child(2)')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); } 0");
+        await wait(700);
+        await fs.writeFile(join(outDir, `pro-menu-${language}.png`), (await win.webContents.capturePage()).toPNG());
+        await page("document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); 0");
+      }
+      await hooks.recovery.end();
       return 0;
     }
 

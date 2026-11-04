@@ -83,9 +83,20 @@ export class Compositor {
   private readonly textCache = new Map<string, Text>();
   private readonly backgrounds = new Map<string, Texture>();
   private readonly images = new Map<string, HTMLImageElement>();
+  private readonly shadows = new Map<string, Texture>();
   private readonly blurFilters = new Map<string, BlurFilter>();
-  private readonly chromaFilter = new ChromaKeyFilter();
-  private readonly lookFilter = new LookFilter();
+  private readonly chromaFilters = new Map<string, ChromaKeyFilter>();
+  private readonly lookFilters = new Map<string, LookFilter>();
+
+  private perClip<T extends { destroy: () => void }>(filters: Map<string, T>, clipId: string, make: () => T): T {
+    let filter = filters.get(clipId);
+    if (!filter) {
+      filter = make();
+      filters.set(clipId, filter);
+    }
+    return filter;
+  }
+
   /** Render textures made for this frame only (redaction snapshots). */
   private frameTextures: Texture[] = [];
 
@@ -120,7 +131,7 @@ export class Compositor {
       preference: "webgl",
       autoStart: false,
       // Keep pixels readable for frame export and the smoke test.
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer: !this.onlyNewVideoFrames,
     });
     this.app.stage.addChild(this.root);
   }
@@ -148,7 +159,7 @@ export class Compositor {
     camera.position.set(W / 2 - cam.scale * cam.cx, H / 2 - cam.scale * cam.cy);
     const blur = Math.hypot(scene.cameraBlur.x, scene.cameraBlur.y);
     if (blur > 0.6) {
-      const f = this.blur(`cam${Math.round(scene.cameraBlur.x)}|${Math.round(scene.cameraBlur.y)}`, 1);
+      const f = this.blur("camera", 1, this.onlyNewVideoFrames ? 2 : 4);
       f.strengthX = Math.min(40, Math.abs(scene.cameraBlur.x) * 0.5);
       f.strengthY = Math.min(40, Math.abs(scene.cameraBlur.y) * 0.5);
       camera.filters = [f];
@@ -172,6 +183,7 @@ export class Compositor {
       }
     }
     if (scene.cursor) {
+      if (scene.cursor.visible) this.drawPointerEffects(scene.cursor, camera, W, H);
       camera.addChild(this.drawRings(scene.cursor));
       if (scene.cursor.visible) camera.addChild(this.drawCursor(scene.cursor));
       if (scene.cursor.keys.length) overlays.addChild(this.drawKeys(scene.cursor, W, H));
@@ -199,11 +211,29 @@ export class Compositor {
         destroyTree(child as Container);
       }
       node.filters = null;
-      node.destroy({ children: false });
+      // `context: true`: a Graphics given any options otherwise leaves its geometry for the
+      // garbage collector instead of freeing it now.
+      node.destroy({ children: false, context: true });
     };
     for (const old of this.root.removeChildren()) destroyTree(old as Container);
     for (const t of this.frameTextures) t.destroy(true);
     this.frameTextures = [];
+    // Nothing is on the stage now, so old cached text can really be freed.
+    if (this.textCache.size > 300) {
+      for (const text of this.textCache.values()) text.destroy({ texture: true, textureSource: true });
+      this.textCache.clear();
+    }
+    while (this.shadows.size > 8) {
+      const [key, texture] = this.shadows.entries().next().value!;
+      texture.destroy(true);
+      this.shadows.delete(key);
+    }
+  }
+
+  /** The element is going away: free its GPU texture. */
+  forgetVideo(el: HTMLVideoElement): void {
+    this.videoSources.get(el)?.destroy();
+    this.videoSources.delete(el);
   }
 
   private blur(key: string, strength: number, quality = 4): BlurFilter {
@@ -314,19 +344,41 @@ export class Compositor {
 
   /** Three stacked soft shadow layers (offsets 12/4/2, alphas .7/.5/.3, blur 48/16/8 at 1080p). */
   private shadow(points: number[], intensity: number, unit: number): Container {
-    const c = new Container();
-    const layers: [number, number, number][] = [
-      [12, 0.7, 48],
-      [4, 0.5, 16],
-      [2, 0.3, 8],
-    ];
-    for (const [offset, alpha, blur] of layers) {
-      const g = new Graphics().poly(points).fill({ color: 0x000000, alpha: Math.min(1, alpha * intensity * 0.6) });
-      g.position.set(0, offset * unit);
-      g.filters = [this.blur(`sh${blur}|${unit.toFixed(2)}`, (blur * unit) / 2)];
-      c.addChild(g);
+    // Three full-size blurs are the most expensive thing in a frame, and the shadow rarely
+    // changes: draw it once and reuse the picture.
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let i = 0; i < points.length; i += 2) {
+      x0 = Math.min(x0, points[i]!);
+      x1 = Math.max(x1, points[i]!);
+      y0 = Math.min(y0, points[i + 1]!);
+      y1 = Math.max(y1, points[i + 1]!);
     }
-    return c;
+    const pad = Math.ceil(170 * unit);
+    const region = new Rectangle(Math.floor(x0 - pad), Math.floor(y0 - pad), Math.ceil(x1 - x0 + pad * 2), Math.ceil(y1 - y0 + pad * 2));
+    const key = `${points.length}|${region.x},${region.y},${region.width},${region.height}|${intensity.toFixed(3)}|${unit.toFixed(3)}|${this.scale.toFixed(3)}|${points[0]?.toFixed(1)},${points[1]?.toFixed(1)}`;
+    let texture = this.shadows.get(key);
+    if (!texture) {
+      const c = new Container();
+      const layers: [number, number, number][] = [
+        [12, 0.7, 48],
+        [4, 0.5, 16],
+        [2, 0.3, 8],
+      ];
+      for (const [offset, alpha, blur] of layers) {
+        const g = new Graphics().poly(points).fill({ color: 0x000000, alpha: Math.min(1, alpha * intensity * 0.6) });
+        g.position.set(0, offset * unit);
+        g.filters = [this.blur(`sh${blur}|${unit.toFixed(2)}`, (blur * unit) / 2)];
+        c.addChild(g);
+      }
+      texture = this.app.renderer.generateTexture({ target: c, frame: region, resolution: this.scale, antialias: false });
+      texture.label = "cached";
+      c.destroy({ children: true, context: true });
+      this.shadows.set(key, texture);
+    }
+    const sprite = new Sprite(texture);
+    sprite.position.set(region.x, region.y);
+    sprite.setSize(region.width, region.height);
+    return sprite;
   }
 
   private drawLayer(layer: SceneLayer, stageW: number, stageH: number): Container | null {
@@ -388,14 +440,16 @@ export class Compositor {
           : [box.x, box.y, box.x + box.width, box.y, box.x + box.width, box.y + box.height, box.x, box.y + box.height];
     if (layer.shadow > 0) node.addChild(this.shadow(outline, layer.shadow, unit));
     node.addChild(sprite);
-    // Webcam filters: green screen first, then the look (beauty + colour).
+    // Filters: green screen first, then the look (beauty + colour). One filter object per
+    // clip, because each holds its clip's settings until the frame is drawn.
     const filters: Filter[] = [];
-    if (layer.chroma) filters.push(this.chromaFilter.set(layer.chroma));
-    if (cam) {
-      const grade = resolveGrade(cam.look.preset, cam.look);
-      if (!isNeutralLook(cam.look, grade)) {
+    if (layer.chroma) filters.push(this.perClip(this.chromaFilters, layer.clipId, () => new ChromaKeyFilter()).set(layer.chroma));
+    const look = cam?.look ?? layer.look;
+    if (look) {
+      const grade = resolveGrade(look.preset, look);
+      if (!isNeutralLook(look, grade)) {
         const videoH = media instanceof HTMLVideoElement ? media.videoHeight : media.naturalHeight;
-        filters.push(this.lookFilter.set(cam.look, grade, Math.max(1.5, videoH / 240)));
+        filters.push(this.perClip(this.lookFilters, layer.clipId, () => new LookFilter()).set(look, grade, Math.max(1.5, videoH / 240)));
       }
     }
     sprite.filters = filters.length ? filters : null;
@@ -405,6 +459,7 @@ export class Compositor {
       sprite.mask = mask;
     }
     if (cam?.shaped && cam.border.style !== "none" && cam.border.width > 0) node.addChild(this.drawBorder(outline, box, cam.border, unit, layer.localMs));
+    if (layer.border) node.addChild(new Graphics().poly(outline).stroke({ color: layer.border.color, width: layer.border.width, join: "round" }));
     return node;
   }
 
@@ -481,19 +536,34 @@ export class Compositor {
       g.roundRect(f.x, f.y, f.width, f.height, Math.min(f.width, f.height) * 0.06);
       if (c.fill) g.fill(c.fill);
       if (c.strokeWidth > 0) g.stroke(stroke);
-    } else if (c.shape === "ellipse") {
-      g.ellipse(f.x + f.width / 2, f.y + f.height / 2, f.width / 2, f.height / 2);
-      if (c.fill) g.fill(c.fill);
-      if (c.strokeWidth > 0) g.stroke(stroke);
+    } else if (c.shape === "ellipse" || c.shape === "triangle" || c.shape === "star" || c.shape === "polygon") {
+      // Outlines as points, so any of them can sketch itself on screen.
+      const k = c.drawOnMs ? Math.min(1, layer.localMs / c.drawOnMs) : 1;
+      const pts = shapePoints(c.shape, f);
+      if (k >= 1) {
+        g.poly(pts.flatMap((v) => [v.x, v.y]));
+        if (c.fill) g.fill(c.fill);
+        if (c.strokeWidth > 0) g.stroke(stroke);
+      } else {
+        const drawn = partialPath([...pts, pts[0]!], k);
+        if (drawn.length > 1) {
+          g.moveTo(drawn[0]!.x, drawn[0]!.y);
+          for (const v of drawn.slice(1)) g.lineTo(v.x, v.y);
+          g.stroke(stroke);
+        }
+      }
     } else {
-      g.moveTo(c.x1, c.y1).lineTo(c.x2, c.y2).stroke(stroke);
-      if (c.shape === "arrow") {
+      // The line (and its arrow head) grows from the start point when sketching.
+      const k = c.drawOnMs ? Math.min(1, layer.localMs / c.drawOnMs) : 1;
+      const ex = c.x1 + (c.x2 - c.x1) * k, ey = c.y1 + (c.y2 - c.y1) * k;
+      g.moveTo(c.x1, c.y1).lineTo(ex, ey).stroke(stroke);
+      if (c.shape === "arrow" && k > 0.05) {
         const a = Math.atan2(c.y2 - c.y1, c.x2 - c.x1);
         const head = Math.max(18, c.strokeWidth * 3.2);
         g.poly([
-          c.x2, c.y2,
-          c.x2 - head * Math.cos(a - 0.45), c.y2 - head * Math.sin(a - 0.45),
-          c.x2 - head * Math.cos(a + 0.45), c.y2 - head * Math.sin(a + 0.45),
+          ex, ey,
+          ex - head * Math.cos(a - 0.45), ey - head * Math.sin(a - 0.45),
+          ex - head * Math.cos(a + 0.45), ey - head * Math.sin(a + 0.45),
         ]).fill(c.color);
       }
     }
@@ -505,12 +575,16 @@ export class Compositor {
     const t = layer.transition;
     const f = layer.frame;
     const cx = f.x + f.width / 2, cy = f.y + f.height / 2;
-    if (t.scale !== 1) {
+    const m = layer.motion;
+    const scale = t.scale * (m?.scale ?? 1);
+    const flipX = layer.flipH ? -1 : 1, flipY = layer.flipV ? -1 : 1;
+    if (scale !== 1 || flipX !== 1 || flipY !== 1 || m?.rotation) {
       node.pivot.set(cx, cy);
       node.position.set(cx, cy);
-      node.scale.set(t.scale);
+      node.scale.set(scale * flipX, scale * flipY);
+      node.angle = m?.rotation ?? 0;
     }
-    if (t.dx || t.dy) node.position.set(node.position.x + t.dx * W, node.position.y + t.dy * H);
+    if (t.dx || t.dy || m?.dx || m?.dy) node.position.set(node.position.x + t.dx * W + (m?.dx ?? 0), node.position.y + t.dy * H + (m?.dy ?? 0));
     if (t.wipe < 1) {
       const m = new Graphics().rect(f.x, f.y - 2, Math.max(0.5, f.width * t.wipe), f.height + 4).fill(0xffffff);
       node.addChild(m);
@@ -866,6 +940,36 @@ export class Compositor {
     return node;
   }
 
+  /** Magnifier, spotlight and highlight around the pointer, inside the camera. */
+  private drawPointerEffects(c: SceneCursor, camera: Container, W: number, H: number): void {
+    if (c.magnify) {
+      // Same idea as a redaction: capture what is under the pointer, then show it bigger.
+      const r = c.magnify.radius;
+      const shown = r / c.magnify.scale;
+      const region = new Rectangle(Math.floor(c.x - shown), Math.floor(c.y - shown), Math.ceil(shown * 2), Math.ceil(shown * 2));
+      const saved = camera.filters;
+      camera.filters = null;
+      const tex = this.app.renderer.generateTexture({ target: camera, frame: region, resolution: this.scale * c.magnify.scale, antialias: false, clearColor: "#14151c" });
+      camera.filters = saved ? [...saved] : null;
+      tex.label = "cached"; // freed with frameTextures, not with the sprite
+      this.frameTextures.push(tex);
+      const sprite = new Sprite(tex);
+      sprite.position.set(c.x - r, c.y - r);
+      sprite.setSize(r * 2, r * 2);
+      const mask = new Graphics().circle(c.x, c.y, r).fill(0xffffff);
+      sprite.mask = mask;
+      const lens = new Container();
+      lens.addChild(sprite, mask, new Graphics().circle(c.x, c.y, r).stroke({ color: 0xffffff, width: Math.max(2, r * 0.03), alpha: 0.9 }));
+      camera.addChild(lens);
+    }
+    if (c.spotlight) {
+      const pad = Math.max(W, H);
+      const g = new Graphics().rect(-pad, -pad, W + pad * 2, H + pad * 2).fill({ color: 0x000000, alpha: c.spotlight.dim }).circle(c.x, c.y, c.spotlight.radius).cut();
+      camera.addChild(g);
+    }
+    if (c.highlight) camera.addChild(new Graphics().circle(c.x, c.y, c.highlight.radius).fill({ color: c.highlight.color, alpha: c.highlight.alpha }));
+  }
+
   private drawRings(c: SceneCursor): Graphics {
     const g = new Graphics();
     for (const r of c.rings) {
@@ -965,7 +1069,6 @@ export class Compositor {
       const measure = (s: string) => CanvasTextMetrics.measureText(s, style).width;
       text = new Text({ text: wrapText(value, width, measure).join("\n"), style });
       text.anchor.set(align === "left" ? 0 : align === "right" ? 1 : 0.5, 0);
-      if (this.textCache.size > 300) this.textCache.clear();
       this.textCache.set(key, text);
     }
     text.alpha = 1;
@@ -1009,6 +1112,33 @@ export class Compositor {
   destroy(): void {
     this.app.destroy(false, { children: true });
   }
+}
+
+/** Outline points of a shape inside its frame. */
+function shapePoints(shape: "ellipse" | "triangle" | "star" | "polygon", f: Box): { x: number; y: number }[] {
+  const cx = f.x + f.width / 2, cy = f.y + f.height / 2;
+  const on = (k: number, radius = 1, sides = 1) => {
+    const a = -Math.PI / 2 + (k / sides) * Math.PI * 2;
+    return { x: cx + Math.cos(a) * (f.width / 2) * radius, y: cy + Math.sin(a) * (f.height / 2) * radius };
+  };
+  if (shape === "ellipse") return Array.from({ length: 72 }, (_, i) => on(i, 1, 72));
+  if (shape === "triangle") return [0, 1, 2].map((i) => on(i, 1, 3));
+  if (shape === "polygon") return Array.from({ length: 6 }, (_, i) => on(i, 1, 6));
+  return Array.from({ length: 10 }, (_, i) => on(i, i % 2 ? 0.45 : 1, 10));
+}
+
+/** The first share k of a path's length. */
+function partialPath(pts: { x: number; y: number }[], k: number): { x: number; y: number }[] {
+  const lengths = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i]!.x, p.y - pts[i]!.y));
+  let left = lengths.reduce((a, b) => a + b, 0) * k;
+  const out = [pts[0]!];
+  for (let i = 0; i < lengths.length && left > 0; i++) {
+    const a = pts[i]!, b = pts[i + 1]!, len = lengths[i]!;
+    const t = Math.min(1, left / Math.max(0.001, len));
+    out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    left -= len;
+  }
+  return out;
 }
 
 /** Rounded-rectangle outline as polygon points (circular corners). */

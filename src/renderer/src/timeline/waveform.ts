@@ -7,6 +7,7 @@ export const PEAKS_PER_SECOND = 100;
 const MAX_DECODE_MS = 30 * 60_000;
 
 const cache = new Map<string, Promise<Float32Array | null>>();
+const loudestPeak = new WeakMap<Float32Array, number>();
 
 export function waveformPeaks(path: string, durationMs: number): Promise<Float32Array | null> {
   let entry = cache.get(path);
@@ -53,8 +54,12 @@ export function drawWaveform(canvas: HTMLCanvasElement, peaks: Float32Array, sou
   ctx.fillStyle = color;
   const mid = height / 2;
   // Boost quiet recordings so the shape stays readable (display only).
-  let loudest = 0.05;
-  for (const v of peaks) if (v > loudest) loudest = v;
+  let loudest = loudestPeak.get(peaks);
+  if (loudest === undefined) {
+    loudest = 0.05;
+    for (const v of peaks) if (v > loudest) loudest = v;
+    loudestPeak.set(peaks, loudest);
+  }
   const scale = 0.95 / loudest;
   const sourceSpan = durationMs * speed;
   for (let x = 0; x < width; x++) {

@@ -45,7 +45,13 @@
     "move": "Move",
     "trim": "Trim",
     "props": "Change Properties",
-    "text": "Edit Text"
+    "text": "Edit Text",
+    "freezeFrame": "Hold This Frame",
+    "deleteRange": "Delete In–Out Range",
+    "insertTime": "Insert 2 s of Space",
+    "closeGaps": "Close Gaps on This Lane",
+    "copyLook": "Copy Effects",
+    "pasteLook": "Paste Effects"
   },
   "view": {
     "recorder": "Recorder",
@@ -119,7 +125,12 @@
     "audioTrack": "Audio Track",
     "videoTrack": "Video Track",
     "imageTrack": "Image Track",
-    "annotationTrack": "Annotation Track"
+    "annotationTrack": "Annotation Track",
+    "ellipse": "Ellipse",
+    "triangle": "Triangle",
+    "star": "Star",
+    "polygon": "Hexagon",
+    "sketchArrow": "Sketched Arrow"
   },
   "effects": {
     "zoomRegion": "Zoom Region",
@@ -166,7 +177,10 @@
       "podcast": "Podcast",
       "warm": "Warm",
       "reduceHiss": "Reduce Hiss"
-    }
+    },
+    "removeSilence": "Remove Silences",
+    "duckMusic": "Lower Music Under Voice",
+    "narration": "Record Narration"
   },
   "export": {
     "title": "Export",
@@ -221,7 +235,9 @@
       "auto": "Automatic (graphics card first)",
       "hardware": "Graphics card only",
       "software": "Software only"
-    }
+    },
+    "frame": "Save This Frame as a Picture",
+    "package": "Package Project into a Folder"
   },
   "language": {
     "english": "English",
@@ -318,7 +334,12 @@
       "ripple": "Ripple",
       "spotlight": "Spotlight",
       "echo": "Echo"
-    }
+    },
+    "highlight": "Pointer Highlight",
+    "spotlight": "Pointer Spotlight",
+    "magnify": "Pointer Magnifier",
+    "magnifyScale": "Magnification",
+    "dim": "Darken"
   },
   "layout": {
     "screenOnly": "Screen Only",
@@ -434,7 +455,8 @@
   "shape": {
     "stroke": "Line Width",
     "fill": "Fill",
-    "ellipse": "Ellipse"
+    "ellipse": "Ellipse",
+    "sketch": "Sketch Time"
   },
   "panel": {
     "properties": "Properties",
@@ -556,7 +578,8 @@
     "bottom": "Bottom",
     "top": "Top",
     "width": "Text width",
-    "rows": "Lines"
+    "rows": "Lines",
+    "cutSentence": "Cut this sentence out of the video"
   },
   "lang": {
     "en": "English",
@@ -716,5 +739,64 @@
   "inline": {
     "edit": "Edit text (Enter saves, Shift+Enter new line, Esc cancels)",
     "hint": "Double-click text on the preview to edit it"
+  },
+  "motion": {
+    "title": "Animation",
+    "help": "Move the playhead, then change a value: a keyframe is made there, and the clip moves smoothly between keyframes.",
+    "scale": "Scale",
+    "rotation": "Rotation",
+    "ease": "Easing",
+    "easeIn": "Start slowly",
+    "easeOut": "End slowly",
+    "addKeyframe": "Add Keyframe",
+    "deleteKeyframe": "Delete Keyframe",
+    "behaviors": "Behaviours",
+    "in": "Entrance",
+    "during": "While on screen",
+    "out": "Exit",
+    "b": {
+      "fly-left": "Fly from left",
+      "fly-right": "Fly from right",
+      "fly-up": "Fly from above",
+      "fly-down": "Fly from below",
+      "spin": "Spin",
+      "drop": "Drop",
+      "pulse": "Pulse",
+      "float": "Float",
+      "shake": "Shake"
+    }
+  },
+  "fx": {
+    "title": "Visual Effects",
+    "flipH": "Flip Horizontal",
+    "flipV": "Flip Vertical",
+    "removeColor": "Remove a Color"
+  },
+  "volume": {
+    "points": "Volume Over Time",
+    "addPoint": "Add Point at Playhead",
+    "clear": "Clear Points"
+  },
+  "theme": {
+    "title": "Themes",
+    "help": "One click sets the colours of all titles, callouts, steps and captions.",
+    "gold": "Gold",
+    "crimson": "Crimson",
+    "sky": "Sky",
+    "forest": "Forest",
+    "paper": "Paper"
+  },
+  "notice": {
+    "silencesRemoved": "Silences removed",
+    "noSilences": "No long silences found",
+    "noVoice": "No voice recording found",
+    "noMusic": "No music clip found",
+    "musicLowered": "Music lowered under the voice",
+    "narrating": "Recording narration… choose Record Narration again to stop.",
+    "narrationFailed": "Could not open the microphone",
+    "frameSaved": "Picture saved",
+    "packaged": "Project packaged",
+    "noRange": "Set In and Out first",
+    "noClip": "No video clip under the playhead"
   }
 }

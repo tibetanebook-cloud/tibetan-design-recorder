@@ -3,6 +3,7 @@
  * range, every output frame time, and the audio schedule (which piece of which
  * file plays when, how loud, how fast, with which lane effects).
  */
+import { volumeAt } from "../effects/animate";
 import { projectDurationMs } from "../project/factory";
 import type { AudioFx, Project } from "../project/schema";
 import { isAudible, isAudioTrack } from "../timeline/ops";
@@ -46,6 +47,8 @@ export interface AudioPiece {
   fadeOutMs: number;
   pan: number;
   fx?: AudioFx;
+  /** Volume over time, in ms from the start of this piece. */
+  volumePoints?: { t: number; gain: number }[];
 }
 
 /** Audible clips of audio lanes inside the range, ready to schedule in an OfflineAudioContext. */
@@ -74,6 +77,10 @@ export function audioPlan(project: Project, range: ExportRange): AudioPiece[] {
       fadeOutMs: Math.max(0, clip.fadeOutMs - (clip.startMs + clip.durationMs - end)),
       pan: track.pan,
       fx: track.audioFx,
+      // Moved to this piece's start, keeping the level at the cut if the range begins mid-clip.
+      volumePoints: clip.volumePoints?.length
+        ? [{ t: 0, gain: volumeAt(clip, cut) }, ...clip.volumePoints.filter((v) => v.t > cut).map((v) => ({ t: v.t - cut, gain: v.gain }))]
+        : undefined,
     });
   }
   return pieces.sort((a, b) => a.atMs - b.atMs);
@@ -83,14 +90,24 @@ export function audioPlan(project: Project, range: ExportRange): AudioPiece[] {
  * Gain envelope of a piece as (time s, value) points for setValueCurveAtTime-free
  * scheduling with linear ramps; times relative to the piece start.
  */
-export function fadeEnvelope(p: Pick<AudioPiece, "durationMs" | "fadeInMs" | "fadeOutMs" | "gain">): [number, number][] {
+export function fadeEnvelope(p: Pick<AudioPiece, "durationMs" | "fadeInMs" | "fadeOutMs" | "gain" | "volumePoints">): [number, number][] {
   const d = p.durationMs / 1000;
   const fi = Math.min(p.fadeInMs / 1000, d / 2), fo = Math.min(p.fadeOutMs / 1000, d / 2);
   const pts: [number, number][] = [[0, fi > 0 ? 0 : p.gain]];
   if (fi > 0) pts.push([fi, p.gain]);
   if (fo > 0) pts.push([d - fo, p.gain], [d, 0]);
   else pts.push([d, p.gain]);
-  return pts;
+  if (!p.volumePoints?.length) return pts;
+  // Fades × volume points: straight lines between every moment where either one bends.
+  const fadeAt = (t: number) => {
+    for (let i = 1; i < pts.length; i++) {
+      const [t0, v0] = pts[i - 1]!, [t1, v1] = pts[i]!;
+      if (t <= t1) return v0 + (v1 - v0) * (t1 > t0 ? (t - t0) / (t1 - t0) : 1);
+    }
+    return pts[pts.length - 1]![1];
+  };
+  const times = [...new Set([...pts.map(([t]) => t), ...p.volumePoints.map((v) => v.t / 1000).filter((t) => t > 0 && t < d)])].sort((a, b) => a - b);
+  return times.map((t) => [t, fadeAt(t) * volumeAt(p, t * 1000)]);
 }
 
 /** Lanes that would be exported as separate files ("each track on its own"). */

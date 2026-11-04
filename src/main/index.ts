@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell, type MenuItemConstructorOptions } from "electron";
 import { promises as fs } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { basename, extname, isAbsolute, join } from "node:path";
 import { isLanguage, translate, type Language } from "@shared/i18n";
 import { IPC, type MenuCommand, type OpenResult, type SaveResult } from "@shared/ipc";
 import { MENUS } from "@shared/menu";
@@ -18,9 +18,14 @@ import { migrateUserData } from "./migrate";
 import { Library } from "./library";
 import { closeAllExports, exportClose, exportOpen, exportWrite } from "./exportFiles";
 import { runSmokeTest } from "./smoke";
+import { READABLE_EXTENSIONS } from "./policy";
 
 const SMOKE = process.argv.includes("--smoke-test");
-if (SMOKE) app.setPath("userData", join(app.getPath("temp"), `tdrec-smoke-${process.pid}`));
+if (SMOKE) {
+  app.setPath("userData", join(app.getPath("temp"), `tdrec-smoke-${process.pid}`));
+  // Test recordings must not land in the user's Videos folder.
+  app.setPath("videos", join(app.getPath("temp"), `tdrec-smoke-${process.pid}`, "videos"));
+}
 /** Folder name under Videos for recordings and exports. */
 const PRODUCT_FOLDER = "Nangchen T. Studio Screen Recorder";
 // Renamed in v0.2.0: bring the user's settings, library and extensions along.
@@ -226,6 +231,43 @@ function registerIpc(): void {
     // UTF-8 with BOM: some players need it to show Tibetan subtitles correctly.
     await fs.writeFile(result.filePath, (/\.(srt|vtt)$/i.test(result.filePath) ? "\uFEFF" : "") + text, "utf8");
     return result.filePath;
+  });
+  ipcMain.handle(IPC.binarySave, async (_e, defaultName: string, extensions: string[], data: Uint8Array) => {
+    const result = await dialog.showSaveDialog(mainWindow!, { defaultPath: join(exportDir(), defaultName), filters: [{ name: extensions.join(", ").toUpperCase(), extensions }] });
+    if (result.canceled || !result.filePath) return null;
+    await fs.writeFile(result.filePath, data);
+    return result.filePath;
+  });
+  // The name and folder are chosen here, never by the page.
+  ipcMain.handle(IPC.narrationSave, async (_e, data: Uint8Array) => {
+    const dir = join(app.getPath("videos"), PRODUCT_FOLDER, "Narration");
+    await fs.mkdir(dir, { recursive: true });
+    const path = join(dir, `narration-${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}.webm`);
+    await fs.writeFile(path, data);
+    return path;
+  });
+  ipcMain.handle(IPC.projectPackage, async (_e, json: string) => {
+    const project = parseProject(JSON.parse(json));
+    const result = await dialog.showOpenDialog(mainWindow!, { title: tr("export.package"), defaultPath: exportDir(), properties: ["openDirectory", "createDirectory"] });
+    const folder = result.filePaths[0];
+    if (result.canceled || !folder) return null;
+    const mediaDir = join(folder, "media");
+    await fs.mkdir(mediaDir, { recursive: true });
+    const copied = new Map<string, string>();
+    const media = [];
+    for (const m of project.media) {
+      let target = copied.get(m.path);
+      // Only media and cursor files: the project file comes from the page.
+      if (!target && READABLE_EXTENSIONS.has(extname(m.path).toLowerCase())) {
+        target = join(mediaDir, `${copied.size + 1}-${basename(m.path)}`);
+        await fs.copyFile(m.path, target);
+        copied.set(m.path, target);
+      }
+      media.push(target ? { ...m, path: target } : m);
+    }
+    const path = join(folder, `${(project.name || "project").replace(/[\\/:*?"<>|]/g, "_")}.tdrec`);
+    await saveProject(path, { ...project, media });
+    return path;
   });
   const library = new Library(join(app.isPackaged ? process.resourcesPath : app.getAppPath(), "resources"), app.getPath("userData"));
   ipcMain.handle(IPC.libraryList, () => library.list());

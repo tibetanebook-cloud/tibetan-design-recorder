@@ -10,6 +10,8 @@ import { newId } from "@shared/project/factory";
 import { CaptionStyle, type Clip, type Project } from "@shared/project/schema";
 import { chapterListText, chapters, stepNumbers } from "@shared/teaching";
 import * as ops from "@shared/timeline/ops";
+import { deleteRange } from "@shared/timeline/ranges";
+import { applyTheme, THEMES } from "@shared/effects/themes";
 import { exportSubtitles, importMedia, insertAnnotation, insertTitle, runAction } from "../actions";
 import { useJobs, type Job } from "../jobs";
 import { cuesToCaptionClips, laneCues, transcribeLane } from "../mediaJobs";
@@ -66,6 +68,8 @@ function LibraryPanel() {
   useEffect(() => void window.tdr.library.list().then(setLib), []);
   const run = (id: string) => runAction(id);
   const savable = project.clips.filter((c) => selection.includes(c.id) && isLibraryClip(c));
+  // Files already in the project, to place again (a video's sound copy is not listed twice).
+  const imported = project.media.filter((m, i, all) => m.kind !== "cursor" && all.findIndex((x) => x.path === m.path) === i);
 
   const saveSelection = async () => {
     if (!savable.length) return;
@@ -102,6 +106,28 @@ function LibraryPanel() {
 
   return (
     <div className="props-panel library">
+      <Section title={t("theme.title")}>
+        <p className="muted small">{t("theme.help")}</p>
+        <div className="theme-row">
+          {THEMES.map((th) => (
+            <button key={th.id} className="theme-chip" title={t(th.label!)} data-theme-id={th.id} onClick={() => useEditor.getState().edit("theme.title", (p) => applyTheme(p, th))}>
+              <span className="theme-swatch" lang="en" data-l10n-skip style={{ background: th.surface, borderColor: th.accent, color: th.text }}>Aa</span>
+              <span className="lib-label">{t(th.label!)}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+      {imported.length > 0 && (
+        <Section title={t("dialog.media")}>
+          <div className="media-bin">
+            {imported.map((m) => (
+              <button key={m.id} className="media-row" lang="en" data-l10n-skip title={m.path} onClick={() => void importMedia([m.path])}>
+                {m.path.split(/[\\/]/).pop()}
+              </button>
+            ))}
+          </div>
+        </Section>
+      )}
       <Section title={t("effects.titles")}>
         <div className="lib-grid">
           {TITLE_TEMPLATES.map((tpl) => (
@@ -113,7 +139,7 @@ function LibraryPanel() {
       </Section>
       <Section title={t("library.annotations")}>
         <div className="lib-grid">
-          {(["insert.callout", "insert.highlight", "insert.spotlight", "insert.blurRegion", "insert.stepNumber", "insert.arrow", "insert.shape", "insert.text"] as const).map((id) => (
+          {(["insert.callout", "insert.highlight", "insert.spotlight", "insert.blurRegion", "insert.stepNumber", "insert.arrow", "insert.sketchArrow", "insert.shape", "insert.ellipse", "insert.triangle", "insert.star", "insert.polygon", "insert.text"] as const).map((id) => (
             <Tile key={id} label={t(id)} onClick={() => run(id)} testId={id}>
               <span className={`ico ico-${id.slice(7)}`} />
             </Tile>
@@ -166,7 +192,8 @@ function CaptionsPanel() {
   const t = useEditor((s) => s.t);
   const edit = useEditor((s) => s.edit);
   const project = useEditor((s) => s.history.present);
-  const playheadMs = useEditor((s) => s.playheadMs);
+  // Only the cue under the playhead: this panel must not redraw on every frame of playback.
+  const activeCue = useEditor((s) => s.history.present.clips.find((c) => c.content.type === "caption" && s.playheadMs >= c.startMs && s.playheadMs < c.startMs + c.durationMs)?.id);
   const style = project.captionStyle;
   const captionLanes = project.tracks.filter((tr) => tr.kind === "caption");
   const audioLanes = project.tracks.filter((tr) => ops.isAudioTrack(tr) && project.clips.some((c) => c.trackId === tr.id));
@@ -253,7 +280,7 @@ function CaptionsPanel() {
         {message && <p className="muted small">{message}</p>}
         <div className="cue-list">
           {cues.map((c) => (
-            <CueRow key={c.id} clip={c} active={playheadMs >= c.startMs && playheadMs < c.startMs + c.durationMs} />
+            <CueRow key={c.id} clip={c} active={activeCue === c.id} />
           ))}
           {!cues.length && <p className="muted small">{t("captions.none")}</p>}
         </div>
@@ -296,6 +323,7 @@ function CaptionsPanel() {
 
 function CueRow({ clip, active }: { clip: Clip; active: boolean }) {
   const edit = useEditor((s) => s.edit);
+  const t = useEditor((s) => s.t);
   if (clip.content.type !== "caption") return null;
   const content = clip.content;
   return (
@@ -311,7 +339,8 @@ function CueRow({ clip, active }: { clip: Clip; active: boolean }) {
         // Kept exactly as typed (tsheg/shad untouched).
         onBlur={(e) => e.target.value !== content.text && edit("captions.edit", (p) => ops.setClipProps(p, [clip.id], { content: { ...content, text: e.target.value, lang: /[ༀ-࿿]/.test(e.target.value) ? "bo" : content.lang } }))}
       />
-      <button className="cue-del" onClick={() => edit("edit.delete", (p) => ops.deleteClips(p, [clip.id]))}>×</button>
+      <button className="cue-del" title={t("captions.cutSentence")} data-cue-cut onClick={() => edit("captions.cutSentence", (p) => deleteRange(p, { startMs: clip.startMs, endMs: clip.startMs + clip.durationMs }))}>✂</button>
+      <button className="cue-del" title={t("edit.delete")} onClick={() => edit("edit.delete", (p) => ops.deleteClips(p, [clip.id]))}>×</button>
     </div>
   );
 }
