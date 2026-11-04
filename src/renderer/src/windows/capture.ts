@@ -9,7 +9,10 @@
  */
 import { wallNow } from "@shared/recording/clock";
 import type { CaptureBeginPayload } from "@shared/recording/ipc";
+import { withTimeout } from "@shared/recording/timeout";
 import type { TrackFileKind } from "@shared/recording/types";
+
+const OPEN_TIMEOUT_MS = 15_000;
 
 const VIDEO_TYPES = ["video/webm;codecs=h264", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
 const AUDIO_TYPES = ["audio/webm;codecs=opus", "audio/webm"];
@@ -75,9 +78,9 @@ function record(kind: TrackFileKind, stream: MediaStream): void {
 }
 
 /** Name the input in the error so the user knows which permission/device failed. */
-async function open<T>(input: TrackFileKind, fn: () => Promise<T>): Promise<T> {
+async function open(input: TrackFileKind, fn: () => Promise<MediaStream>): Promise<MediaStream> {
   try {
-    return await fn();
+    return await withTimeout(fn(), OPEN_TIMEOUT_MS, (late) => late.getTracks().forEach((t) => t.stop()));
   } catch (error) {
     const e = error as DOMException;
     throw new Error(`${input}: ${e.name ?? "Error"}: ${e.message ?? String(error)}`);

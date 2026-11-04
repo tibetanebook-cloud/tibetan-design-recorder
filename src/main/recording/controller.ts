@@ -70,7 +70,7 @@ export class RecordingController {
     ipcMain.handle(REC.listSources, () => this.listSources());
     ipcMain.handle(REC.listDisplays, () => this.listDisplays());
     ipcMain.handle(REC.selectRegion, (_e, displayId: string) => this.selectRegion(displayId));
-    ipcMain.handle(REC.start, (_e, settings: RecordingSettings) => this.start(settings));
+    ipcMain.handle(REC.start, (_e, settings: RecordingSettings) => this.start(settings).catch((error) => this.abortStart(error)));
     ipcMain.handle(REC.pause, () => this.pause());
     ipcMain.handle(REC.resume, () => this.resume());
     ipcMain.handle(REC.stop, () => this.stop());
@@ -111,14 +111,15 @@ export class RecordingController {
       const top = request.frame?.top;
       const captureFrame = this.captureWin?.webContents.mainFrame;
       const fromCapture = !!top && !!captureFrame && top.processId === captureFrame.processId && top.routingId === captureFrame.routingId;
-      void desktopCapturer.getSources({ types: ["screen", "window"], thumbnailSize: { width: 0, height: 0 } }).then((sources) => {
-        if (fromCapture) {
-          const source = sources.find((s) => s.id === this.pendingScreenSource);
-          if (!source) return callback({});
-          return callback(this.wantLoopback ? { video: source, audio: "loopback" } : { video: source });
-        }
-        if (process.platform !== "win32") return callback({});
-        const first = sources.find((s) => s.id.startsWith("screen"));
+      if (fromCapture) {
+        // The user already picked this source from the list, so there's no need to scan them all again.
+        if (!this.pendingScreenSource) return callback({});
+        const video = { id: this.pendingScreenSource, name: "screen" };
+        return callback(this.wantLoopback ? { video, audio: "loopback" } : { video });
+      }
+      if (process.platform !== "win32") return callback({});
+      void desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: 0, height: 0 } }).then((sources) => {
+        const first = sources[0];
         callback(first ? { video: first, audio: "loopback" } : {});
       });
     });
@@ -249,6 +250,20 @@ export class RecordingController {
   private fail(message: string): void {
     console.error("Recording error:", message);
     this.setStatus({ phase: "error", error: message });
+  }
+
+  /** Something unexpected went wrong while starting: clean up and show it instead of staying stuck. */
+  private async abortStart(error: unknown): Promise<void> {
+    this.captureWin?.destroy();
+    this.captureWin = null;
+    await this.cursor?.stop().catch(() => {});
+    this.cursor = null;
+    await this.writer?.discard().catch(() => {});
+    this.writer = null;
+    this.hudWin?.close();
+    const main = this.mainWindow();
+    if (main?.isMinimized()) main.restore();
+    this.fail(String(error).slice(0, 500));
   }
 
   // ---------- record ----------

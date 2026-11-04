@@ -138,6 +138,24 @@ describe("take -> editor project", () => {
   });
 });
 
+describe("opening an input with a time limit", () => {
+  it("passes on an answer that arrives in time", async () => {
+    const { withTimeout } = await import("@shared/recording/timeout");
+    await expect(withTimeout(Promise.resolve("ok"), 50)).resolves.toBe("ok");
+    await expect(withTimeout(Promise.reject(new Error("denied")), 50)).rejects.toThrow("denied");
+  });
+  it("gives up on an input that never answers, and releases a late answer", async () => {
+    const { withTimeout } = await import("@shared/recording/timeout");
+    let answer: (value: string) => void = () => {};
+    const released: string[] = [];
+    const slow = new Promise<string>((resolve) => (answer = resolve));
+    await expect(withTimeout(slow, 10, (late) => released.push(late))).rejects.toThrow("no answer");
+    answer("stream");
+    await slow;
+    expect(released).toEqual(["stream"]);
+  });
+});
+
 describe("recording warnings for the UI", () => {
   it("splits the input, a plain reason and the technical detail", async () => {
     const { describeWarning } = await import("@shared/recording/warnings");
