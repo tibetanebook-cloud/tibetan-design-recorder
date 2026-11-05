@@ -92,14 +92,39 @@ jobs:
           kill -0 "$pid"
           kill "$pid"
 
-      - name: Keep the files
+      - name: Plain names for the two Mac files
+        if: runner.os == 'macOS'
+        run: |
+          for f in dist/*-Mac-arm64.dmg; do mv "$f" "${f%-arm64.dmg}-M-Chip.dmg"; done
+          for f in dist/*-Mac-x64.dmg; do mv "$f" "${f%-x64.dmg}-Intel-Chip.dmg"; done
+
+      # One download per computer, so nobody has to open a zip to find out which file is theirs.
+      - name: Keep the Windows installer
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: installers-${{ runner.os }}
+          name: Windows-Installer
           retention-days: 14
-          path: |
-            dist/*-Windows-Setup.exe
-            dist/*.dmg
+          if-no-files-found: error
+          path: dist/*-Windows-Setup.exe
+
+      - name: Keep the Mac installer for M chips
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac-M-Chip-Installer
+          retention-days: 14
+          if-no-files-found: error
+          path: dist/*-Mac-M-Chip.dmg
+
+      - name: Keep the Mac installer for Intel chips
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac-Intel-Chip-Installer
+          retention-days: 14
+          if-no-files-found: error
+          path: dist/*-Mac-Intel-Chip.dmg
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -111,13 +136,6 @@ jobs:
           path: installers
           merge-multiple: true
 
-      - name: Plain names for the two Mac files
-        run: |
-          cd installers
-          for f in *-Mac-arm64.dmg; do mv "$f" "${f%-arm64.dmg}-AppleSilicon.dmg"; done
-          for f in *-Mac-x64.dmg; do mv "$f" "${f%-x64.dmg}-Intel.dmg"; done
-          ls -la
-
       - name: Draft release
         uses: softprops/action-gh-release@v2
         with:
@@ -125,6 +143,7 @@ jobs:
           name: Nangchen T. Studio Screen Recorder ${{ github.ref_name }}
           body: |
             **Windows:** Nangchen-Recorder-…-Windows-Setup.exe
-            **Mac (M1/M2/M3/M4):** …-Mac-AppleSilicon.dmg · **Mac (Intel):** …-Mac-Intel.dmg
-            These builds are not code-signed yet, so Windows and macOS ask you to confirm the first start (see docs/INSTALL.md).
+            **Mac with an M chip (M1, M2, M3, M4 or newer):** …-Mac-M-Chip.dmg
+            **Mac with an Intel chip:** …-Mac-Intel-Chip.dmg
+            Mac builds are signed and notarized. The Windows installer is not code-signed yet, so Windows may ask you to confirm the first start (see docs/INSTALL.md).
           files: installers/*

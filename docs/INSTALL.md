@@ -7,11 +7,11 @@ Pick **one** file:
 | Your computer | Download |
 |---|---|
 | Windows 10/11 | `Nangchen-Recorder-<version>-Windows-Setup.exe` |
-| Mac with Apple chip (M1, M2, M3, M4) | `Nangchen-Recorder-<version>-Mac-AppleSilicon.dmg` |
-| Mac with Intel chip | `Nangchen-Recorder-<version>-Mac-Intel.dmg` |
+| Mac with an M chip (M1, M2, M3, M4 or newer) | `Nangchen-Recorder-<version>-Mac-M-Chip.dmg` |
+| Mac with an Intel chip | `Nangchen-Recorder-<version>-Mac-Intel-Chip.dmg` |
 
-Not sure which Mac you have? Apple menu → **About This Mac**: "Chip: Apple M…" means Apple chip,
-"Processor: Intel…" means Intel.
+Not sure which Mac you have? Apple menu → **About This Mac**: "Chip: Apple M…" means an M chip,
+"Processor: Intel…" means an Intel chip.
 
 The Windows installer installs for the current user; you can choose the folder. Linux builds are
 no longer published (they can still be built from source: `npm run dist:linux`).
