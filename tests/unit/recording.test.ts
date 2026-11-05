@@ -164,7 +164,29 @@ describe("recording warnings for the UI", () => {
     expect(describeWarning("system: no system audio track was provided")).toMatchObject({ input: "system", reason: "noSystemAudio" });
     expect(describeWarning("NotReadableError: Could not start video source")).toMatchObject({ input: undefined, reason: "inUse" });
     expect(describeWarning("something odd").reason).toBe("failed");
+    expect(describeWarning("screen: the chosen source is no longer available")).toMatchObject({ input: "screen", reason: "sourceGone" });
+    expect(describeWarning("screen: NotReadableError: Could not start video source")).toMatchObject({ input: "screen", reason: "failed" });
     expect(describeWarning("clicks: Accessibility permission is not granted")).toMatchObject({ input: undefined, reason: "accessibility" });
     expect(describeWarning("clicks: Error: Failed to enable access for assistive devices.").reason).toBe("accessibility");
+  });
+});
+
+describe("choosing the capture source at record time", () => {
+  const live = [{ id: "screen:6:0", display_id: "111" }, { id: "screen:7:0", display_id: "222" }, { id: "window:55:0" }];
+  it("follows a screen whose number changed", async () => {
+    const { resolveCaptureSource } = await import("@shared/recording/sources");
+    expect(resolveCaptureSource({ kind: "display", sourceId: "screen:4:0", displayId: "222" }, live)).toBe("screen:7:0");
+    expect(resolveCaptureSource({ kind: "region", sourceId: "screen:4:0", displayId: "111" }, live)).toBe("screen:6:0");
+  });
+  it("does not record the wrong monitor when numbers swap", async () => {
+    const { resolveCaptureSource } = await import("@shared/recording/sources");
+    expect(resolveCaptureSource({ kind: "display", sourceId: "screen:6:0", displayId: "222" }, live)).toBe("screen:7:0");
+  });
+  it("keeps the id when the display id is unknown, and reports what is gone", async () => {
+    const { resolveCaptureSource } = await import("@shared/recording/sources");
+    expect(resolveCaptureSource({ kind: "display", sourceId: "screen:6:0", displayId: "" }, live)).toBe("screen:6:0");
+    expect(resolveCaptureSource({ kind: "display", sourceId: "screen:4:0", displayId: "999" }, live)).toBeNull();
+    expect(resolveCaptureSource({ kind: "window", sourceId: "window:55:0", displayId: "111" }, live)).toBe("window:55:0");
+    expect(resolveCaptureSource({ kind: "window", sourceId: "window:66:0", displayId: "111" }, live)).toBeNull();
   });
 });

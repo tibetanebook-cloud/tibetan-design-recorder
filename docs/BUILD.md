@@ -95,7 +95,9 @@ secrets exist (Settings → Secrets and variables → Actions):
 | `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password from account.apple.com |
 | `APPLE_TEAM_ID` | The 10-character Team ID from developer.apple.com → Membership |
 
-Without `MAC_CSC_LINK` the workflow still builds, with an ad-hoc signature and a warning. That
+`BUILD_CERTIFICATE_BASE64` and `P12_PASSWORD` also work for the first two.
+
+Without the certificate and `APPLE_ID` the workflow still builds, with an ad-hoc signature and a warning. That
 build is for testing only. Do not build with `identity: null`: the app's fuses edit the Electron
 Framework, and Apple Silicon Macs refuse the app unless it is signed again afterwards. The
 workflow checks each signature and starts the Apple Silicon app before keeping the files.

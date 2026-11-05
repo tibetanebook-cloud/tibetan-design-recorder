@@ -28,7 +28,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
-      MAC_SIGNED: ${{ secrets.MAC_CSC_LINK != '' }}
+      # Signing and notarizing need the certificate and the Apple account together.
+      MAC_SIGNED: ${{ (secrets.MAC_CSC_LINK != '' || secrets.BUILD_CERTIFICATE_BASE64 != '') && secrets.APPLE_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,8 +61,8 @@ jobs:
         if: runner.os == 'macOS' && env.MAC_SIGNED == 'true'
         run: npm run dist:mac
         env:
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK || secrets.BUILD_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD || secrets.P12_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -69,7 +70,7 @@ jobs:
       - name: Build Mac installers (ad-hoc signature, for testing only)
         if: runner.os == 'macOS' && env.MAC_SIGNED != 'true'
         run: |
-          echo "::warning::No Apple certificate secrets: this Mac build is ad-hoc signed and not notarized."
+          echo "::warning::Apple certificate or account secrets are missing: this Mac build is ad-hoc signed and not notarized."
           npm run dist:mac -- -c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false
 
       - name: Check the Mac apps (signature, and that the app stays running)

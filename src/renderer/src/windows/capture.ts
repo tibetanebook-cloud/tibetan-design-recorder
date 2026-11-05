@@ -131,7 +131,7 @@ async function begin(p: CaptureBeginPayload): Promise<void> {
 
   if (display.status === "rejected") {
     for (const r of [cam, mic]) if (r.status === "fulfilled") r.value?.getTracks().forEach((t) => t.stop());
-    return api.error(String(display.reason));
+    return api.error((display.reason as Error).message);
   }
   const streams: [TrackFileKind, MediaStream][] = [];
   if (display.value) {

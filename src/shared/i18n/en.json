@@ -104,6 +104,7 @@
       "noData": "nothing was recorded from this input",
       "noStart": "recording could not start",
       "noSystemAudio": "system sound is not available for this source",
+      "sourceGone": "that screen or window is no longer available. Please choose it again.",
       "failed": "this input could not be used"
     }
   },

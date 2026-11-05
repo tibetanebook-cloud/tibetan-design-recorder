@@ -15,6 +15,8 @@
 import { app, BrowserWindow, desktopCapturer, globalShortcut, ipcMain, screen, session, shell, systemPreferences } from "electron";
 import { join } from "node:path";
 import { RecordingClock, wallNow } from "@shared/recording/clock";
+import { resolveCaptureSource } from "@shared/recording/sources";
+import { withTimeout } from "@shared/recording/timeout";
 import { REC, type CaptureBeginPayload, type CaptureDonePayload, type TrackStartedPayload } from "@shared/recording/ipc";
 import {
   RECORDING_HOTKEYS,
@@ -147,6 +149,20 @@ export class RecordingController {
     return screen.getAllDisplays().map((d) => ({ id: String(d.id), bounds: d.bounds, scaleFactor: d.scaleFactor }));
   }
 
+  /** The chosen source's id as it is right now; null if it is gone. If the list can't be read, the capture itself decides. */
+  private async currentSourceId(chosen: RecordingSettings["screen"]): Promise<string | null> {
+    if (!chosen.sourceId) return chosen.sourceId;
+    try {
+      const live = await withTimeout(
+        desktopCapturer.getSources({ types: [chosen.kind === "window" ? "window" : "screen"], thumbnailSize: { width: 0, height: 0 }, fetchWindowIcons: false }),
+        3000,
+      );
+      return live.length ? resolveCaptureSource(chosen, live) : chosen.sourceId;
+    } catch {
+      return chosen.sourceId;
+    }
+  }
+
   async listSources(): Promise<CaptureSource[]> {
     const sources = await desktopCapturer.getSources({
       types: ["screen", "window"],
@@ -270,6 +286,9 @@ export class RecordingController {
 
   async start(settings: RecordingSettings): Promise<void> {
     if (this.status.phase !== "idle" && this.status.phase !== "error") return;
+    const sourceId = await this.currentSourceId(settings.screen);
+    if (sourceId === null) return this.fail("screen: the chosen source is no longer available");
+    settings = { ...settings, screen: { ...settings.screen, sourceId } };
     this.settings = settings;
     const d = screen.getAllDisplays().find((x) => String(x.id) === settings.screen.displayId) ?? screen.getPrimaryDisplay();
     this.display = { id: String(d.id), bounds: d.bounds, scaleFactor: d.scaleFactor };

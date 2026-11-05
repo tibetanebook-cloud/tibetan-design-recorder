@@ -124,6 +124,31 @@ async function smokeRecording(
     countdownSec: 1,
     outputDir: join(app.getPath("temp"), `tdrec-smoke-takes-${process.pid}`),
   };
+  if (process.argv.includes("--stale-source")) {
+    // A monitor slept and came back: the id picked earlier no longer exists.
+    const only = { ...settings, webcam: { ...settings.webcam, deviceId: null }, mic: { deviceId: null }, systemAudio: false };
+    await recorder.start({ ...only, screen: { ...only.screen, sourceId: "screen:99:0" } });
+    await wait(3500);
+    const staleTake = await recorder.stop();
+    const track = staleTake?.tracks.find((t) => t.kind === "screen");
+    check("records the same screen when its id went stale", !!track && track.durationMs > 1000, track ? `${track.durationMs} ms, ${track.width}x${track.height}` : "no take");
+    if (recorder.lastTakeDir) await fs.rm(recorder.lastTakeDir, { recursive: true, force: true });
+    // The window was closed.
+    win.webContents.send(IPC.menuCommand, "view.recorder");
+    await wait(1000);
+    await recorder.start({ ...only, screen: { kind: "window", sourceId: "window:1:0", displayId: only.screen.displayId, fps: 30 } });
+    await wait(2500);
+    const after = await page<string>("document.querySelector('.rec-error')?.textContent ?? ''");
+    check("a closed window is reported plainly", /no longer available/.test(after), after);
+    await fs.writeFile(join(outDir, "stale-window-error.png"), await snapshot(win));
+    // The next press works from the error state, with the list refreshed.
+    await recorder.start({ ...only });
+    await wait(3000);
+    const again = await recorder.stop();
+    check("recording works again after that error", !!again?.tracks.some((t) => t.kind === "screen"));
+    if (recorder.lastTakeDir) await fs.rm(recorder.lastTakeDir, { recursive: true, force: true });
+    return;
+  }
   await recorder.start(settings);
   await wait(3000);
   recorder.pause();

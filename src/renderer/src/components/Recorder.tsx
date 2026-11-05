@@ -4,6 +4,7 @@
  * recorded as its own file and lands on its own lane in the editor.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { resolveCaptureSource } from "@shared/recording/sources";
 import { describeWarning } from "@shared/recording/warnings";
 import { RECORDING_HOTKEYS, type CaptureSource, type DisplayInfo, type RecordingSettings, type RecorderStatus } from "@shared/recording/types";
 import { meterPosition, startMeter } from "../audio/meter";
@@ -30,17 +31,26 @@ export function Recorder() {
     // Default to the first display right away (before the slower device probe).
     const firstDisplay = srcs.find((s) => s.kind === "display");
     const current = useRecorderSettings.getState().settings;
-    if (firstDisplay && !srcs.some((s) => s.id === current.screen.sourceId))
+    // A screen's id can change (a monitor slept or reconnected): stay on the same screen.
+    const stillThere = resolveCaptureSource(current.screen, srcs.map((s) => ({ id: s.id, display_id: s.displayId })));
+    if (stillThere && stillThere !== current.screen.sourceId) update({ screen: { ...current.screen, sourceId: stillThere } });
+    else if (firstDisplay && !stillThere)
       update({ screen: { ...current.screen, kind: "display", sourceId: firstDisplay.id, displayId: firstDisplay.displayId ?? disps[0]?.id ?? "", region: undefined } });
+    // macOS gives an empty list without permission. Say so now: the camera prompt below can wait a long time.
+    const isMac = window.tdr.platform === "darwin";
+    if (isMac && !firstDisplay) setScreenBlocked(true);
     // macOS: listing sources above triggers the screen prompt; this asks for camera and mic.
     const macPermissions = await window.tdr.rec.macPermissions();
-    setScreenBlocked(!!macPermissions && macPermissions.screen !== "granted");
-    // Ask once so device labels are available, then list devices.
-    try {
-      const probe = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      probe.getTracks().forEach((tr) => tr.stop());
-    } catch {
-      /* no camera or mic is fine */
+    setScreenBlocked(isMac && (!firstDisplay || macPermissions?.screen !== "granted"));
+    // Ask once so device labels are available, then list devices. Separately: a blocked
+    // or missing camera must not hide the microphones, or the other way round.
+    for (const constraints of [{ video: true }, { audio: true }]) {
+      try {
+        const probe = await navigator.mediaDevices.getUserMedia(constraints);
+        probe.getTracks().forEach((tr) => tr.stop());
+      } catch {
+        /* no camera or mic is fine */
+      }
     }
     const devices = await navigator.mediaDevices.enumerateDevices();
     setCams(devices.filter((d) => d.kind === "videoinput"));
@@ -57,6 +67,11 @@ export function Recorder() {
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
     };
   }, [refresh]);
+
+  // After a failed start the list may be out of date: the next press should just work.
+  useEffect(() => {
+    if (status.phase === "error") void refresh();
+  }, [status.phase, refresh]);
 
   const chooseSource = (src: CaptureSource) =>
     update({ screen: { ...settings.screen, kind: src.kind, sourceId: src.id, displayId: src.displayId ?? settings.screen.displayId, region: undefined } });
@@ -85,6 +100,12 @@ export function Recorder() {
     <div className="recorder">
       <section className="rec-section">
         <h2>{t("record.source")}</h2>
+        {screenBlocked && (
+          <div className="rec-error">
+            ⚠ {t("record.macScreenNeeded")}{" "}
+            <button onClick={() => void window.tdr.rec.openPrivacySettings("screen")}>{t("record.openSettings")}</button>
+          </div>
+        )}
         <div className="source-grid">
           {sources.map((src) => {
             const selected = settings.screen.sourceId === src.id && (src.kind !== "display" || settings.screen.kind !== "region");
@@ -99,13 +120,15 @@ export function Recorder() {
               </button>
             );
           })}
-          <button className={`source-card region ${settings.screen.kind === "region" ? "selected" : ""}`} onClick={() => void chooseRegion()}>
-            <span className="region-icon">⬚</span>
-            <span className="source-name">
-              {t("record.region")}
-              {settings.screen.region && <span lang="en"> · {Math.round(settings.screen.region.width)}×{Math.round(settings.screen.region.height)}</span>}
-            </span>
-          </button>
+          {sources.some((s) => s.kind === "display") && (
+            <button className={`source-card region ${settings.screen.kind === "region" ? "selected" : ""}`} onClick={() => void chooseRegion()}>
+              <span className="region-icon">⬚</span>
+              <span className="source-name">
+                {t("record.region")}
+                {settings.screen.region && <span lang="en"> · {Math.round(settings.screen.region.width)}×{Math.round(settings.screen.region.height)}</span>}
+              </span>
+            </button>
+          )}
         </div>
         <div className="row">
           <label>{t("record.frameRate")}</label>
@@ -162,13 +185,18 @@ export function Recorder() {
           <span>{t("record.cancel")}: <kbd lang="en">{hotkeyLabel(RECORDING_HOTKEYS.cancel)}</kbd></span>
           <span>{t("insert.marker")}: <kbd lang="en">{hotkeyLabel(RECORDING_HOTKEYS.marker)}</kbd></span>
         </div>
-        {screenBlocked && (
+        {status.phase === "error" && status.error && (
           <div className="rec-error">
-            ⚠ {t("record.macScreenNeeded")}{" "}
-            <button onClick={() => void window.tdr.rec.openPrivacySettings("screen")}>{t("record.openSettings")}</button>
+            {t("status.error")}:{" "}
+            {[describeWarning(status.error)].map((w) => (
+              <span key="reason">
+                {w.input && <b>{t(`track.${w.input}`)}: </b>}
+                {t(`record.warn.${w.reason}`)}
+                <small lang="en" data-l10n-skip> ({w.detail})</small>
+              </span>
+            ))}
           </div>
         )}
-        {status.phase === "error" && <div className="rec-error">{t("status.error")}: <span lang="en">{status.error}</span></div>}
         {!!status.warnings?.length && (
           <div className="rec-error">
             ⚠ {t("record.inputFailed")}:
