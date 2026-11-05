@@ -1,6 +1,6 @@
 # Installers for Windows, macOS and Linux.
 # Owner decisions: app id org.tibetandesign.recorder (kept so v0.1.0 updates in place), publisher "Nangchen T. Studio",
-# unsigned for now (see docs/INSTALL.md for what users see), macOS/Linux built by GitHub Actions.
+# Windows remains unsigned; macOS builds are Developer ID signed and notarized.
 appId: org.tibetandesign.recorder
 productName: Nangchen T. Studio Screen Recorder
 copyright: Copyright © 2026 Nangchen T. Studio
@@ -78,10 +78,10 @@ mac:
   category: public.app-category.video
   icon: build/icon.png
   minimumSystemVersion: "12.0"
-  # Unsigned for now. With a Developer ID: provide CSC_LINK/CSC_KEY_PASSWORD, set
-  # hardenedRuntime: true (entitlements below) and notarize (see docs/BUILD.md).
-  identity: null
-  hardenedRuntime: false
+  # GitHub Actions supplies the Developer ID certificate and notarization credentials.
+  forceCodeSigning: true
+  hardenedRuntime: true
+  notarize: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
