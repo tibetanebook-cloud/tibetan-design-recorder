@@ -5,7 +5,7 @@
 #     (nothing is public until you press "Publish release" on GitHub).
 #   - Actions tab -> "Build installers" -> Run workflow -> builds and keeps the files as
 #     downloadable artifacts for 14 days (no release).
-# Unsigned builds (owner decision 2026-10-22); signing secrets can be added later, see docs/BUILD.md.
+# macOS releases are signed with Developer ID and notarized; Windows remains unsigned.
 name: Build installers
 
 on:
@@ -48,11 +48,47 @@ jobs:
         if: runner.os == 'Windows'
         run: npm run smoke:l10n
 
-      - name: Build installers
-        run: npm run ${{ matrix.dist }}
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        run: npm run dist:win
         env:
-          # Unsigned: stop electron-builder from looking for signing identities.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Build signed and notarized Mac installers
+        if: runner.os == 'macOS'
+        env:
+          CSC_LINK: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required Mac signing credential: $name"
+              exit 1
+            fi
+          done
+          npm run dist:mac
+
+      - name: Verify Mac signatures and notarization tickets
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' app; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+            xcrun stapler validate "$app"
+            spctl --assess --type execute --verbose=2 "$app"
+            count=$((count + 1))
+          done < <(find dist -maxdepth 2 -type d -name '*.app' -print0)
+          if [[ "$count" -ne 2 ]]; then
+            echo "::error::Expected signed Apple Silicon and Intel app bundles; found $count"
+            exit 1
+          fi
 
       - name: Keep the files
         uses: actions/upload-artifact@v4
@@ -88,5 +124,5 @@ jobs:
           body: |
             **Windows:** Nangchen-Recorder-…-Windows-Setup.exe
             **Mac (M1/M2/M3/M4):** …-Mac-AppleSilicon.dmg · **Mac (Intel):** …-Mac-Intel.dmg
-            These builds are not code-signed yet, so Windows and macOS ask you to confirm the first start (see docs/INSTALL.md).
+            Mac builds are Developer ID signed and notarized. Windows builds remain unsigned (see docs/INSTALL.md).
           files: installers/*
