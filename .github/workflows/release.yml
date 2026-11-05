@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-14 # Apple Silicon runner; also builds the Intel (x64) app
+          - os: macos-15 # Apple Silicon runner; also builds the Intel (x64) app
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
