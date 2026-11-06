@@ -36,6 +36,13 @@ export const IPC = {
   transcribeSetConfig: "transcribe:set-config",
   transcribeRun: "transcribe:run",
   menuCommand: "menu:command",
+  updateCurrent: "update:current",
+  updateCheck: "update:check",
+  updateDownload: "update:download",
+  updateInstall: "update:install",
+  updateOpenPage: "update:open-page",
+  updateState: "update:state",
+  openWebsite: "app:open-website",
   rendererReady: "renderer:ready",
   /** Main -> renderer: open this .tdrec (double-clicked in Explorer/Finder, or passed on the command line). */
   projectOpenRequest: "project:open-request",

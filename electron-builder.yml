@@ -24,7 +24,12 @@ npmRebuild: false
 # Chromium's own UI translations (context menus etc.): none exists for Tibetan, keep English only (-48 MB).
 electronLanguages: [en-US]
 # Nothing is uploaded anywhere by a local build.
-publish: null
+# Tells the installed app where to look for updates. Nothing is uploaded by the build itself:
+# every dist script passes --publish never, and the workflow drafts the release.
+publish:
+  provider: github
+  owner: tibetanebook-cloud
+  repo: tibetan-design-recorder
 # Hardened Electron binary: it can't be run as plain Node.js, ignores NODE_OPTIONS and
 # --inspect, and only loads the app from its own integrity-checked archive.
 electronFuses:
@@ -74,6 +79,9 @@ portable:
 mac:
   target:
     - target: dmg
+      arch: [arm64, x64]
+    # What the in-app update downloads on a Mac.
+    - target: zip
       arch: [arm64, x64]
   category: public.app-category.video
   icon: build/icon.png

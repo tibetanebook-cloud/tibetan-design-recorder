@@ -190,3 +190,14 @@ describe("choosing the capture source at record time", () => {
     expect(resolveCaptureSource({ kind: "window", sourceId: "window:66:0", displayId: "111" }, live)).toBeNull();
   });
 });
+
+describe("update prompt", () => {
+  it("compares versions as numbers", async () => {
+    const { isNewerVersion } = await import("@shared/updates");
+    expect(isNewerVersion("0.10.0", "0.9.9")).toBe(true);
+    expect(isNewerVersion("v0.3.1", "0.3.0")).toBe(true);
+    expect(isNewerVersion("v0.3.0", "0.3.0")).toBe(false);
+    expect(isNewerVersion("0.2.9", "0.3.0")).toBe(false);
+    expect(isNewerVersion("nonsense", "0.3.0")).toBe(false);
+  });
+});

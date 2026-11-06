@@ -1,6 +1,22 @@
 # Release notes
 
-## Next version (not released yet)
+## 0.3.0
+
+**Updates inside the app** — when a new version is published the app asks whether to update. If
+you say yes it downloads the update by itself and installs it when you restart. Help ▸ Check for
+Updates checks at any time. This starts with 0.3.0: older versions must be updated by hand once.
+
+**nangchen.com** link in the sidebar.
+
+**Mac**
+- The app is signed with a Developer ID and notarized by Apple, so it opens normally, and
+  permissions carry over to future versions.
+- Clear file names: `…-Mac-M-Chip.dmg` for an M chip and `…-Mac-Intel-Chip.dmg` for an Intel chip.
+- The red Accessibility message now lists the steps to fix it.
+- The message about Screen Recording permission is at the top and appears at once.
+
+**Windows** — recording no longer fails with "Could not start video source" after a monitor
+sleeps or reconnects. A closed window gets a plain message asking you to choose again.
 
 **Much faster on Windows and Mac**
 - Moving the playhead in a new recording is about 40 times faster: recordings now contain a

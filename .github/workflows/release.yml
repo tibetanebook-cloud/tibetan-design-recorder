@@ -70,6 +70,10 @@ jobs:
       - name: Build Mac installers (ad-hoc signature, for testing only)
         if: runner.os == 'macOS' && env.MAC_SIGNED != 'true'
         run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "::error::A release must be signed and notarized: Apple certificate or account secrets are missing."
+            exit 1
+          fi
           echo "::warning::Apple certificate or account secrets are missing: this Mac build is ad-hoc signed and not notarized."
           npm run dist:mac -- -c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false
 
@@ -126,6 +130,19 @@ jobs:
           if-no-files-found: error
           path: dist/*-Mac-Intel-Chip.dmg
 
+      # The in-app update reads these from the release. Their names must stay as built.
+      - name: Keep the files the in-app update needs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Update-Files-${{ runner.os }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            dist/latest*.yml
+            dist/*.zip
+            dist/*.zip.blockmap
+            dist/*-Setup.exe.blockmap
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
@@ -145,5 +162,6 @@ jobs:
             **Windows:** Nangchen-Recorder-…-Windows-Setup.exe
             **Mac with an M chip (M1, M2, M3, M4 or newer):** …-Mac-M-Chip.dmg
             **Mac with an Intel chip:** …-Mac-Intel-Chip.dmg
+            Choose one of those three. The other files are used by the app's own updates.
             Mac builds are signed and notarized. The Windows installer is not code-signed yet, so Windows may ask you to confirm the first start (see docs/INSTALL.md).
           files: installers/*

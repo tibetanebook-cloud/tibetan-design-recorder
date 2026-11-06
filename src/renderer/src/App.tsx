@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { MenuCommand, RecoveryInfo } from "@shared/ipc";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { eventToShortcut } from "@shared/shortcuts";
 import { parseProject } from "@shared/project/schema";
 import { MenuBar } from "./components/MenuBar";
@@ -87,6 +88,13 @@ export function App() {
       case "language.en": return void window.tdr.setLanguage("en");
       case "language.bo": return void window.tdr.setLanguage("bo");
       case "help.about": return setAbout(true);
+      case "help.update":
+        void window.tdr.update.check().then((result) => {
+          const s = useEditor.getState();
+          if (result === "latest") s.setNotice(s.t("help.updateLatest"));
+          else if (result === "failed") s.setNotice(s.t("help.updateFailed"));
+        });
+        return;
       default:
         return runAction(command, (id) => {
           window.tdr.sendMenuCommand(id as MenuCommand);
@@ -190,6 +198,9 @@ export function App() {
           <button className={`nav ${view === "editor" ? "active" : ""}`} onClick={() => setView("editor")}>
             <span className="nav-dot" /> {t("view.editor")}
           </button>
+          <button className="nav site-link" lang="en" data-l10n-skip onClick={() => void window.tdr.openWebsite()}>
+            nangchen.com
+          </button>
         </aside>
         <main className="main">
           {view === "editor" ? (
@@ -203,6 +214,7 @@ export function App() {
           {view === "editor" && <Timeline />}
         </main>
       </div>
+      <UpdateBanner />
       <StatusBar />
 
       {recovery.available && (

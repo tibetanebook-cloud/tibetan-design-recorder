@@ -127,6 +127,11 @@ export class RecordingController {
     });
   }
 
+  /** True from the countdown until a take is finished. */
+  isBusy(): boolean {
+    return this.status.phase !== "idle" && this.status.phase !== "error";
+  }
+
   // ---------- macOS permissions ----------
 
   /** macOS: asks for camera and microphone once; returns the screen permission. Null elsewhere. */

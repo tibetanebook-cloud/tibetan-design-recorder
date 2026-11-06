@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import { basename, extname, isAbsolute, join } from "node:path";
 import { isLanguage, translate, type Language } from "@shared/i18n";
 import { IPC, type MenuCommand, type OpenResult, type SaveResult } from "@shared/ipc";
+import { WEBSITE_URL } from "@shared/updates";
+import { UpdateManager } from "./updates";
 import { MENUS } from "@shared/menu";
 import { parseProject } from "@shared/project/schema";
 import { projectArg } from "@shared/project/launchArgs";
@@ -377,6 +379,7 @@ function registerIpc(): void {
     pendingRecovery = { available: false };
   });
   ipcMain.handle(IPC.appQuit, () => app.quit());
+  ipcMain.handle(IPC.openWebsite, () => shell.openExternal(WEBSITE_URL));
   ipcMain.on(IPC.menuCommand, (_e, command: MenuCommand) => {
     if (command === "view.fullScreen") mainWindow?.setFullScreen(!mainWindow.isFullScreen());
   });
@@ -405,7 +408,10 @@ void app.whenReady().then(async () => {
   const hotkeysFailed = recorder.registerHotkeys(() => mainWindow?.webContents.send(REC.hotkeyStart));
   if (hotkeysFailed.length) console.warn("Hotkeys already in use by another app:", hotkeysFailed.join(", "));
   buildNativeMenu(settings.get().language);
+  const updates = new UpdateManager(() => mainWindow, () => settings.get().language, () => recorder.isBusy(), userData);
+  updates.register();
   mainWindow = createWindow();
+  if (!SMOKE) updates.start();
 
   if (SMOKE) {
     const code = await runSmokeTest(mainWindow, { setLanguage, recovery, userData, recorder, openProject: openInWindow, allowWriteDir: (d) => writes.allowDir(d) });

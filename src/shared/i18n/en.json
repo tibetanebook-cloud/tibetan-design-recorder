@@ -95,8 +95,12 @@
     "inputFailed": "Some inputs could not be recorded",
     "macScreenNeeded": "Screen recording is not allowed yet. Turn on Screen & System Audio Recording in System Settings, then restart the app.",
     "openSettings": "Open System Settings",
+    "accessStep1": "Click Open System Settings beside the red message.",
+    "accessStep2": "Open Privacy & Security → Accessibility.",
+    "accessStep3": "Enable Nangchen T. Studio Screen Recorder. If it’s missing, click + and select it from Applications.",
+    "accessStep4": "Fully quit the recorder with ⌘Q, then reopen it.",
     "warn": {
-      "accessibility": "clicks and shortcuts were not recorded (allow Accessibility in System Settings, then restart the app)",
+      "accessibility": "clicks and shortcuts were not recorded. To record them:",
       "deniedMac": "access was blocked (allow it in System Settings, then restart the app)",
       "denied": "access was blocked (check the camera/microphone switch or Windows privacy settings)",
       "notFound": "no such device was found",
@@ -247,7 +251,17 @@
   "help": {
     "help": "Help",
     "about": "About",
-    "update": "Check for Updates"
+    "update": "Check for Updates",
+    "updateAsk": "A newer version is available. Would you like to update?",
+    "updateYes": "Yes, update",
+    "updateDownloading": "Downloading the update…",
+    "updateReady": "The update is ready. Restart the app to finish.",
+    "updateRestart": "Restart now",
+    "updateDownloadFailed": "The update could not be downloaded.",
+    "updateOpenPage": "Open the download page",
+    "updateLater": "Later",
+    "updateLatest": "You have the latest version.",
+    "updateFailed": "Could not check for updates. Please try again later."
   },
   "track": {
     "screen": "Screen",

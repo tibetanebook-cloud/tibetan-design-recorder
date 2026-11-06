@@ -147,6 +147,16 @@ async function smokeRecording(
     const again = await recorder.stop();
     check("recording works again after that error", !!again?.tracks.some((t) => t.kind === "screen"));
     if (recorder.lastTakeDir) await fs.rm(recorder.lastTakeDir, { recursive: true, force: true });
+    // The Mac's Accessibility message, to look at on any computer.
+    win.webContents.send(IPC.menuCommand, "view.recorder");
+    win.setSize(1440, 1000);
+    (recorder as unknown as { setStatus(p: { warnings: string[] }): void }).setStatus({ warnings: ["clicks: Accessibility permission is not granted"] });
+    await wait(1000);
+    const steps = await page<number>("document.querySelectorAll('.rec-steps li').length");
+    check("the Accessibility message lists its four steps", steps === 4, `${steps} steps`);
+    await page("document.querySelector('.rec-steps')?.scrollIntoView({ block: 'center' }); 0");
+    await wait(400);
+    await fs.writeFile(join(outDir, "accessibility-steps.png"), await snapshot(win));
     return;
   }
   await recorder.start(settings);
@@ -535,7 +545,27 @@ export async function runSmokeTest(win: BrowserWindow, hooks: Hooks): Promise<nu
     const info = await hooks.recovery.check();
     check("crash recovery detects autosave", info.available && info.projectName === "Smoke test");
 
-    if (!process.argv.includes("--no-record")) await smokeRecording(win, hooks.recorder, outDir, check, page, wait, hooks.allowWriteDir);
+    if (process.argv.includes("--update-check")) {
+      // How each step of the update prompt looks; the real download is tested on a real release.
+      win.setSize(1440, 900);
+      for (const language of ["en", "bo"] as const) {
+        await hooks.setLanguage(language);
+        for (const state of [
+          { phase: "available", version: "9.9.9" },
+          { phase: "downloading", version: "9.9.9", percent: 42 },
+          { phase: "ready", version: "9.9.9" },
+          { phase: "failed", version: "9.9.9" },
+        ]) {
+          win.webContents.send(IPC.updateState, state);
+          await wait(400);
+          const shown = await page<string>(`document.querySelector('[data-update-banner=${state.phase}]')?.textContent ?? ''`);
+          check(`update prompt, ${language}: ${state.phase}`, shown.length > 5, shown);
+          if (state.phase === "available" || state.phase === "downloading") await fs.writeFile(join(outDir, `update-${state.phase}-${language}.png`), await snapshot(win));
+        }
+      }
+      const link = await page<string>("document.querySelector('.site-link')?.textContent ?? ''");
+      check("nangchen.com is in the sidebar", link.includes("nangchen.com"), link);
+    } else if (!process.argv.includes("--no-record")) await smokeRecording(win, hooks.recorder, outDir, check, page, wait, hooks.allowWriteDir);
     else if (process.argv.includes("--l10n")) await smokeL10n(win, outDir, check, page, wait);
   } catch (error) {
     check("smoke test ran", false, String(error));

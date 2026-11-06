@@ -23,7 +23,10 @@ lists the protections and how they are tested. Last reviewed for 0.2.0 (2026-10-
 ## Your data
 
 - Nothing is uploaded unless you turn on auto-captions with an online service.
-- No analytics, no tracking, no automatic updates contacting a server.
+- No analytics and no tracking.
+- Updates: the installed app asks GitHub for the newest public release when it opens and every
+  6 hours, and sends nothing about you or your files. It asks before downloading; a finished
+  download installs when you restart the app or close it.
 - Settings: `%APPDATA%\Nangchen T. Studio Screen Recorder` (Windows),
   `~/Library/Application Support/Nangchen T. Studio Screen Recorder` (macOS),
   `~/.config/Nangchen T. Studio Screen Recorder` (Linux).

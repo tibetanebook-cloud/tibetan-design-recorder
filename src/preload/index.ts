@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { IPC, type MenuCommand, type OpenResult, type RecoveryInfo, type SaveResult, type Settings } from "@shared/ipc";
 import type { Language } from "@shared/i18n";
+import type { UpdateCheckResult, UpdateState } from "@shared/updates";
 import type { ExtensionInfo } from "@shared/extensions";
 import type { Rect } from "@shared/project/schema";
 import type { LibraryContents, UserLibraryItem } from "@shared/library";
@@ -10,6 +11,19 @@ import type { CaptureSource, DisplayInfo, RecorderStatus, RecordingSettings, Tak
 
 const api = {
   platform: process.platform,
+  openWebsite: (): Promise<void> => ipcRenderer.invoke(IPC.openWebsite),
+  update: {
+    current: (): Promise<UpdateState | null> => ipcRenderer.invoke(IPC.updateCurrent),
+    check: (): Promise<UpdateCheckResult> => ipcRenderer.invoke(IPC.updateCheck),
+    download: (): Promise<void> => ipcRenderer.invoke(IPC.updateDownload),
+    install: (): Promise<void> => ipcRenderer.invoke(IPC.updateInstall),
+    openPage: (): Promise<void> => ipcRenderer.invoke(IPC.updateOpenPage),
+    onState: (cb: (update: UpdateState) => void): (() => void) => {
+      const handler = (_e: IpcRendererEvent, update: UpdateState) => cb(update);
+      ipcRenderer.on(IPC.updateState, handler);
+      return () => ipcRenderer.off(IPC.updateState, handler);
+    },
+  },
   /** True only in automated test runs (the main process passes this flag). */
   testMode: process.argv.includes("--tdr-test-hooks"),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke(IPC.settingsGet),

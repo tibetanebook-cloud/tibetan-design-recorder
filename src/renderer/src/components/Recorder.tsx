@@ -206,7 +206,14 @@ export function Recorder() {
                 {t(w.reason === "denied" && window.tdr.platform === "darwin" ? "record.warn.deniedMac" : `record.warn.${w.reason}`)}
                 <small lang="en" data-l10n-skip> ({w.detail})</small>
                 {w.reason === "accessibility" && (
-                  <button onClick={() => void window.tdr.rec.openPrivacySettings("accessibility")}>{t("record.openSettings")}</button>
+                  <>
+                    <button onClick={() => void window.tdr.rec.openPrivacySettings("accessibility")}>{t("record.openSettings")}</button>
+                    <ol className="rec-steps">
+                      {[1, 2, 3, 4].map((n) => (
+                        <li key={n}>{t(`record.accessStep${n}`)}</li>
+                      ))}
+                    </ol>
+                  </>
                 )}
               </div>
             ))}

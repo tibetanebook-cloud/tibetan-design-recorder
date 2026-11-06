@@ -114,6 +114,6 @@ export const MENUS: MenuDef[] = [
   },
   {
     label: "menu.help",
-    items: [{ label: "help.about", command: "help.about" }, p("help.update")],
+    items: [{ label: "help.about", command: "help.about" }, { label: "help.update", command: "help.update" }],
   },
 ];

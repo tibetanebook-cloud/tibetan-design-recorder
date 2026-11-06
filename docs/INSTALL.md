@@ -36,9 +36,21 @@ The first recording asks for permission to use the screen, camera and microphone
   Some laptops also have a camera shutter or microphone mute key.
 - **macOS:** System Settings → Privacy & Security → **Screen & System Audio Recording**,
   **Camera** and **Microphone** → turn on Nangchen T. Studio Screen Recorder, then restart the app.
-  Turn it on under **Accessibility** too if you want clicks and shortcuts recorded; without it
-  the recording still works, but with no click effects or shortcut labels. System sound is not
-  recorded on a Mac yet.
+  Without **Accessibility** the recording still works, but with no click effects or shortcut
+  labels. System sound is not recorded on a Mac yet.
+
+### If a Mac shows the red Accessibility message
+
+1. Click **Open System Settings** beside the red message.
+2. Open **Privacy & Security → Accessibility**.
+3. Enable **Nangchen T. Studio Screen Recorder**. If it's missing, click **+** and select it from **Applications**.
+4. Fully quit the recorder with **⌘Q**, then reopen it.
+
+## Updates
+
+From version 0.3.0 the app asks when a newer version is published. Choose **Yes, update** and it
+downloads the update by itself, then **Restart now** installs it. **Help → Check for Updates**
+checks at any time. Older versions must be updated by hand once.
 
 ## Where your files are
 
