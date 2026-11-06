@@ -59,7 +59,15 @@ jobs:
 
       - name: Build Mac installers (Developer ID, notarized)
         if: runner.os == 'macOS' && env.MAC_SIGNED == 'true'
-        run: npm run dist:mac
+        # Fetching Apple's ticket often loses its connection from these machines ("Error 68").
+        # The whole build is repeated because the step leaves no finished files to resume from.
+        run: |
+          for attempt in 1 2 3 4; do
+            if npm run dist:mac; then exit 0; fi
+            echo "::warning::Mac build attempt $attempt failed; trying again in 90 seconds."
+            sleep 90
+          done
+          exit 1
         env:
           CSC_LINK: ${{ secrets.MAC_CSC_LINK || secrets.BUILD_CERTIFICATE_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD || secrets.P12_PASSWORD }}
